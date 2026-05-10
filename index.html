@@ -283,6 +283,7 @@ tr:hover .action-btn{opacity:1}
     </div>
     <nav class="nav">
       <div class="nav-label">Operação</div>
+      <div class="nav-item" onclick="nav('inicio',this)"><span class="nav-icon">◇</span><span>Início</span></div>
       <div class="nav-item active" onclick="nav('dashboard',this)"><span class="nav-icon">⊞</span><span>Dashboard</span></div>
       <div class="nav-item" onclick="nav('ordens',this)"><span class="nav-icon">☰</span><span>Ordens de Serviço</span><span class="nav-badge" id="sidebar-badge" style="display:none"></span></div>
       <div class="nav-item" onclick="nav('tecnicos',this)"><span class="nav-icon">◎</span><span>Técnicos</span></div>
@@ -308,9 +309,112 @@ tr:hover .action-btn{opacity:1}
 
     <div id="content">
 
+      <!-- INÍCIO -->
+      <div class="view" id="view-inicio">
+        <div style="max-width:720px;margin:0 auto">
+
+          <!-- Hero -->
+          <div style="background:#000;border-radius:16px;padding:36px 40px;margin-bottom:20px;position:relative;overflow:hidden">
+            <div style="position:absolute;top:-40px;right:-40px;width:200px;height:200px;background:var(--brand-mint);opacity:.07;border-radius:50%"></div>
+            <div style="position:absolute;bottom:-60px;right:60px;width:140px;height:140px;background:var(--brand-indigo);opacity:.12;border-radius:50%"></div>
+            <div style="position:relative;z-index:1">
+              <div style="display:inline-block;background:var(--brand-mint);color:#000;font-size:10px;font-weight:700;font-family:'Inter',sans-serif;padding:3px 10px;border-radius:99px;letter-spacing:.08em;text-transform:uppercase;margin-bottom:16px">Bem-vindo ao FieldOps</div>
+              <h1 style="font-family:'Inter',sans-serif;font-size:26px;font-weight:700;color:#fff;line-height:1.3;margin-bottom:10px">Coordenação operacional de<br>técnicos de campo</h1>
+              <p style="font-size:13px;color:rgba(255,255,255,.55);line-height:1.7;max-width:480px">O FieldOps centraliza tudo que você precisa para gerenciar equipes em campo — ordens de serviço, status dos técnicos e indicadores de desempenho — em um único painel em tempo real.</p>
+              <div style="margin-top:24px;display:flex;gap:10px;flex-wrap:wrap">
+                <button class="btn btn-primary" onclick="nav('dashboard',document.querySelectorAll('.nav-item')[1])" style="font-size:13px;padding:9px 20px">Abrir dashboard →</button>
+                <button class="btn" onclick="openOSModal()" style="font-size:13px;padding:9px 20px;background:rgba(255,255,255,.08);color:#fff;border-color:rgba(255,255,255,.15)">+ Criar primeira OS</button>
+              </div>
+            </div>
+          </div>
+
+          <!-- O que você encontra aqui -->
+          <div style="margin-bottom:8px;padding:0 2px">
+            <p style="font-size:11px;font-weight:700;font-family:'Inter',sans-serif;color:var(--text3);text-transform:uppercase;letter-spacing:.08em;margin-bottom:14px">O que você encontra aqui</p>
+          </div>
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:20px">
+
+            <div style="background:var(--surface);border:1.5px solid var(--border);border-radius:12px;padding:20px;cursor:pointer;transition:border-color .15s" onmouseover="this.style.borderColor='var(--brand-mint)'" onmouseout="this.style.borderColor='var(--border)'" onclick="nav('dashboard',document.querySelectorAll('.nav-item')[1])">
+              <div style="font-size:22px;margin-bottom:10px">⊞</div>
+              <div style="font-size:13px;font-weight:700;font-family:'Inter',sans-serif;margin-bottom:6px">Dashboard</div>
+              <p style="font-size:12px;color:var(--text2);line-height:1.6">Visão em tempo real da operação: técnicos disponíveis, OS abertas, alertas de SLA vencido e equipe de campo — tudo em uma tela.</p>
+            </div>
+
+            <div style="background:var(--surface);border:1.5px solid var(--border);border-radius:12px;padding:20px;cursor:pointer;transition:border-color .15s" onmouseover="this.style.borderColor='var(--brand-mint)'" onmouseout="this.style.borderColor='var(--border)'" onclick="nav('ordens',document.querySelectorAll('.nav-item')[2])">
+              <div style="font-size:22px;margin-bottom:10px">☰</div>
+              <div style="font-size:13px;font-weight:700;font-family:'Inter',sans-serif;margin-bottom:6px">Ordens de Serviço</div>
+              <p style="font-size:12px;color:var(--text2);line-height:1.6">Crie, atribua e acompanhe OS do início ao fim. Filtre por status, prioridade ou região. Cancele, edite e registre observações a cada movimentação.</p>
+            </div>
+
+            <div style="background:var(--surface);border:1.5px solid var(--border);border-radius:12px;padding:20px;cursor:pointer;transition:border-color .15s" onmouseover="this.style.borderColor='var(--brand-mint)'" onmouseout="this.style.borderColor='var(--border)'" onclick="nav('tecnicos',document.querySelectorAll('.nav-item')[3])">
+              <div style="font-size:22px;margin-bottom:10px">◎</div>
+              <div style="font-size:13px;font-weight:700;font-family:'Inter',sans-serif;margin-bottom:6px">Técnicos</div>
+              <p style="font-size:12px;color:var(--text2);line-height:1.6">Cadastre e edite técnicos com especialidade, senioridade e região. Acompanhe a carga de cada um e gerencie reatribuições quando alguém entra em folga.</p>
+            </div>
+
+            <div style="background:var(--surface);border:1.5px solid var(--border);border-radius:12px;padding:20px;cursor:pointer;transition:border-color .15s" onmouseover="this.style.borderColor='var(--brand-mint)'" onmouseout="this.style.borderColor='var(--border)'" onclick="nav('analytics',document.querySelectorAll('.nav-item')[4])">
+              <div style="font-size:22px;margin-bottom:10px">◫</div>
+              <div style="font-size:13px;font-weight:700;font-family:'Inter',sans-serif;margin-bottom:6px">Analytics</div>
+              <p style="font-size:12px;color:var(--text2);line-height:1.6">Indicadores de SLA, tempo médio por técnico, carga por região e histórico de OS finalizadas — com filtro de período para análise gerencial.</p>
+            </div>
+
+          </div>
+
+          <!-- Como usar -->
+          <div style="background:var(--surface);border:1.5px solid var(--border);border-radius:12px;padding:24px;margin-bottom:20px">
+            <p style="font-size:11px;font-weight:700;font-family:'Inter',sans-serif;color:var(--text3);text-transform:uppercase;letter-spacing:.08em;margin-bottom:18px">Como começar</p>
+            <div style="display:flex;flex-direction:column;gap:16px">
+
+              <div style="display:flex;align-items:flex-start;gap:14px">
+                <div style="width:28px;height:28px;border-radius:50%;background:var(--brand-mint);color:#000;font-size:12px;font-weight:700;font-family:'Inter',sans-serif;display:flex;align-items:center;justify-content:center;flex-shrink:0;margin-top:1px">1</div>
+                <div>
+                  <div style="font-size:13px;font-weight:600;font-family:'Inter',sans-serif;margin-bottom:3px">Cadastre seus técnicos</div>
+                  <p style="font-size:12px;color:var(--text2);line-height:1.6">Vá em <strong>Técnicos → + Novo técnico</strong> e preencha nome, especialidade, senioridade e região de atuação.</p>
+                </div>
+              </div>
+
+              <div style="display:flex;align-items:flex-start;gap:14px">
+                <div style="width:28px;height:28px;border-radius:50%;background:var(--brand-mint);color:#000;font-size:12px;font-weight:700;font-family:'Inter',sans-serif;display:flex;align-items:center;justify-content:center;flex-shrink:0;margin-top:1px">2</div>
+                <div>
+                  <div style="font-size:13px;font-weight:600;font-family:'Inter',sans-serif;margin-bottom:3px">Crie uma Ordem de Serviço</div>
+                  <p style="font-size:12px;color:var(--text2);line-height:1.6">Clique em <strong>+ Nova OS</strong> (no topo de qualquer tela), defina o título, tipo, prioridade, cliente e SLA — e atribua a um técnico disponível.</p>
+                </div>
+              </div>
+
+              <div style="display:flex;align-items:flex-start;gap:14px">
+                <div style="width:28px;height:28px;border-radius:50%;background:var(--brand-mint);color:#000;font-size:12px;font-weight:700;font-family:'Inter',sans-serif;display:flex;align-items:center;justify-content:center;flex-shrink:0;margin-top:1px">3</div>
+                <div>
+                  <div style="font-size:13px;font-weight:600;font-family:'Inter',sans-serif;margin-bottom:3px">Acompanhe no Dashboard</div>
+                  <p style="font-size:12px;color:var(--text2);line-height:1.6">O Dashboard mostra tudo em tempo real. OS com SLA vencido aparecem destacadas com alerta automático — nada passa despercebido.</p>
+                </div>
+              </div>
+
+              <div style="display:flex;align-items:flex-start;gap:14px">
+                <div style="width:28px;height:28px;border-radius:50%;background:var(--brand-mint);color:#000;font-size:12px;font-weight:700;font-family:'Inter',sans-serif;display:flex;align-items:center;justify-content:center;flex-shrink:0;margin-top:1px">4</div>
+                <div>
+                  <div style="font-size:13px;font-weight:600;font-family:'Inter',sans-serif;margin-bottom:3px">Avance o status da OS</div>
+                  <p style="font-size:12px;color:var(--text2);line-height:1.6">Ao clicar na OS, use os botões <strong>Iniciar</strong> e <strong>Concluir</strong> para registrar cada etapa — com campo de observação para anotações operacionais.</p>
+                </div>
+              </div>
+
+            </div>
+          </div>
+
+          <!-- Dica -->
+          <div style="background:rgba(56,47,216,.05);border:1.5px solid rgba(56,47,216,.15);border-radius:12px;padding:16px 20px;display:flex;gap:12px;align-items:flex-start">
+            <span style="font-size:18px;flex-shrink:0">💡</span>
+            <div>
+              <div style="font-size:12px;font-weight:700;font-family:'Inter',sans-serif;color:var(--brand-indigo);margin-bottom:4px">Dica para a apresentação</div>
+              <p style="font-size:12px;color:var(--text2);line-height:1.7">Os dados de demonstração já estão carregados com técnicos, OS ativas e situações reais de SLA vencido. Você pode criar novas OS ao vivo para mostrar o sistema funcionando em tempo real.</p>
+            </div>
+          </div>
+
+        </div>
+      </div>
+
       <!-- DASHBOARD -->
       <div class="view active" id="view-dashboard">
-        <div id="alert-banner" class="alert-banner" onclick="nav('ordens',document.querySelectorAll('.nav-item')[1])" style="display:none">
+        <div id="alert-banner" class="alert-banner" onclick="nav('ordens',document.querySelectorAll('.nav-item')[2])" style="display:none">
           <span style="font-size:16px">⚠️</span>
           <span style="font-size:12px;color:#713f12;flex:1"><strong id="alert-text"></strong> — ação imediata necessária.</span>
           <span style="font-size:11px;color:#92400e;text-decoration:underline">Ver todas →</span>
@@ -419,7 +523,7 @@ tr:hover .action-btn{opacity:1}
 
       <!-- DETALHE OS -->
       <div class="view" id="view-os-detail">
-        <div class="back-btn" id="detail-back-btn" onclick="nav('ordens',document.querySelectorAll('.nav-item')[1])">← Voltar</div>
+        <div class="back-btn" id="detail-back-btn" onclick="nav('ordens',document.querySelectorAll('.nav-item')[2])">← Voltar</div>
         <div id="os-detail-content"></div>
       </div>
 
@@ -683,7 +787,8 @@ async function initApp(){
   await loadData();subscribeRealtime()
   document.getElementById('loading-screen').classList.add('hidden')
   document.getElementById('app').classList.remove('hidden')
-  renderDashboard();updateClock()
+  nav('inicio', document.querySelector('.nav-item'))
+  updateClock()
   // FIX #9: default period = last 30 days
   const to=new Date(),from=new Date();from.setDate(from.getDate()-30)
   document.getElementById('an-to').value=to.toISOString().slice(0,10)
@@ -704,7 +809,7 @@ function nav(view,el){
   document.getElementById('view-'+view).classList.add('active')
   document.querySelectorAll('.nav-item').forEach(n=>n.classList.remove('active'))
   if(el)el.classList.add('active')
-  const titles={dashboard:'Torre de Controle',ordens:'Ordens de Serviço',tecnicos:'Técnicos de Campo',analytics:'Analytics Operacional','os-detail':'Detalhe da OS'}
+  const titles={inicio:'Início',dashboard:'Torre de Controle',ordens:'Ordens de Serviço',tecnicos:'Técnicos de Campo',analytics:'Analytics Operacional','os-detail':'Detalhe da OS'}
   document.getElementById('topbar-title').textContent=titles[view]||''
   refreshCurrent()
 }
