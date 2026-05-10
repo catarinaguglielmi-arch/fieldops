@@ -533,7 +533,7 @@ tr:hover .action-btn{opacity:1}
         <div class="form-group"><label class="form-label">Tipo</label><select class="form-control" id="f-tipo"><option value="corretiva">Corretiva</option><option value="preventiva">Preventiva</option><option value="instalacao">Instalação</option><option value="vistoria">Vistoria</option></select></div>
         <div class="form-group"><label class="form-label">Prioridade</label><select class="form-control" id="f-prioridade"><option value="critica">🔴 Crítica</option><option value="alta">🟠 Alta</option><option value="media" selected>🟡 Média</option><option value="baixa">🟢 Baixa</option></select></div>
         <div class="form-group"><label class="form-label">Cliente</label><input class="form-control" id="f-cliente" placeholder="Nome do cliente"></div>
-        <div class="form-group"><label class="form-label">Região</label><select class="form-control" id="f-regiao"><option>Zona Sul</option><option>Zona Norte</option><option>Zona Leste</option><option>Zona Oeste</option><option>Centro</option></select></div>
+        <div class="form-group"><label class="form-label">Região</label><select class="form-control" id="f-regiao" onchange="_popularTecnicoSelect(tecnicos.filter(t=>t.status!=='folga'&&t.status!=='offline'),this.value)"><option>Zona Sul</option><option>Zona Norte</option><option>Zona Leste</option><option>Zona Oeste</option><option>Centro</option></select></div>
         <div class="form-group"><label class="form-label">Técnico <span id="f-tec-count" style="color:var(--text3);font-weight:400"></span></label><select class="form-control" id="f-tecnico"></select></div>
         <div class="form-group"><label class="form-label">SLA</label><select class="form-control" id="f-sla"><option value="2">2h — Crítico</option><option value="4">4h — Urgente</option><option value="8" selected>8h — Padrão</option><option value="24">24h — Planejado</option></select></div>
         <div class="form-group form-full"><label class="form-label">Descrição <span style="color:var(--text3);font-weight:400">(opcional)</span></label><textarea class="form-control" id="f-descricao" rows="2" placeholder="Detalhes do problema..."></textarea></div>
@@ -650,7 +650,27 @@ tr:hover .action-btn{opacity:1}
         <div class="form-group form-full"><label class="form-label">Nome completo</label><input class="form-control" id="t-nome" placeholder="Nome do técnico"></div>
         <div class="form-group"><label class="form-label">Especialidade</label><select class="form-control" id="t-esp"><option>Elétrica</option><option>Hidráulica</option><option>HVAC</option><option>TI</option><option>Geral</option></select></div>
         <div class="form-group"><label class="form-label">Senioridade</label><select class="form-control" id="t-sen"><option value="junior">Júnior</option><option value="pleno" selected>Pleno</option><option value="senior">Sênior</option><option value="especialista">Especialista</option></select></div>
-        <div class="form-group"><label class="form-label">Região</label><select class="form-control" id="t-reg"><option>Zona Sul</option><option>Zona Norte</option><option>Zona Leste</option><option>Zona Oeste</option><option>Centro</option></select></div>
+        <div class="form-group form-full">
+          <label class="form-label">Regiões de atuação <span style="color:var(--text3);font-weight:400">(até 3)</span></label>
+          <div id="t-regioes-wrap" style="display:grid;grid-template-columns:1fr 1fr;gap:6px;margin-top:4px">
+            <label style="display:flex;align-items:center;gap:8px;font-size:12px;font-weight:400;cursor:pointer;padding:7px 10px;border:1.5px solid var(--border);border-radius:var(--radius);background:var(--surface2)" id="lbl-reg-sul">
+              <input type="checkbox" value="Zona Sul" onchange="onRegCheckbox()" style="accent-color:var(--brand-mint);width:14px;height:14px"> Zona Sul
+            </label>
+            <label style="display:flex;align-items:center;gap:8px;font-size:12px;font-weight:400;cursor:pointer;padding:7px 10px;border:1.5px solid var(--border);border-radius:var(--radius);background:var(--surface2)" id="lbl-reg-norte">
+              <input type="checkbox" value="Zona Norte" onchange="onRegCheckbox()" style="accent-color:var(--brand-mint);width:14px;height:14px"> Zona Norte
+            </label>
+            <label style="display:flex;align-items:center;gap:8px;font-size:12px;font-weight:400;cursor:pointer;padding:7px 10px;border:1.5px solid var(--border);border-radius:var(--radius);background:var(--surface2)" id="lbl-reg-leste">
+              <input type="checkbox" value="Zona Leste" onchange="onRegCheckbox()" style="accent-color:var(--brand-mint);width:14px;height:14px"> Zona Leste
+            </label>
+            <label style="display:flex;align-items:center;gap:8px;font-size:12px;font-weight:400;cursor:pointer;padding:7px 10px;border:1.5px solid var(--border);border-radius:var(--radius);background:var(--surface2)" id="lbl-reg-oeste">
+              <input type="checkbox" value="Zona Oeste" onchange="onRegCheckbox()" style="accent-color:var(--brand-mint);width:14px;height:14px"> Zona Oeste
+            </label>
+            <label style="display:flex;align-items:center;gap:8px;font-size:12px;font-weight:400;cursor:pointer;padding:7px 10px;border:1.5px solid var(--border);border-radius:var(--radius);background:var(--surface2)" id="lbl-reg-centro">
+              <input type="checkbox" value="Centro" onchange="onRegCheckbox()" style="accent-color:var(--brand-mint);width:14px;height:14px"> Centro
+            </label>
+          </div>
+          <p id="t-reg-error" style="display:none;font-size:11px;color:var(--red);margin-top:4px">Selecione ao menos uma região</p>
+        </div>
         <div class="form-group"><label class="form-label">Status</label><select class="form-control" id="t-status" onchange="checkFolgaOnEdit()"><option value="disponivel">Disponível</option><option value="folga">Folga</option></select></div>
         <div class="form-group"><label class="form-label">Telefone <span style="color:var(--text3);font-weight:400">(opcional)</span></label><input class="form-control" id="t-tel" placeholder="(11) 99999-0000"></div>
         <div class="form-group"><label class="form-label">E-mail <span style="color:var(--text3);font-weight:400">(opcional)</span></label><input class="form-control" id="t-email" placeholder="nome@empresa.com"></div>
@@ -851,7 +871,7 @@ function renderDashboard(){
     const cnt=osPorTecCount(t.id)
     const dotCls=t.status==='disponivel'?'dot-green':t.status==='em_atendimento'?'dot-blue':'dot-orange'
     const pips=Array(4).fill(0).map((_,i)=>`<div class="load-pip${i<cnt?' on':''}"></div>`).join('')
-    return`<div class="team-item">${avatar(t.nome)}<div class="team-info"><div class="team-name">${t.nome.split(' ')[0]} ${t.nome.split(' ').at(-1)}</div><div class="team-sub">${t.especialidade}</div><div class="carga-row"><div class="load-bar">${pips}</div><span class="carga-num">${cnt} OS</span></div></div><div style="text-align:right"><div class="dot-badge"><span class="dot ${dotCls}"></span><span style="font-size:10px">${STATUS_TEC[t.status]}</span></div></div></div>`
+    return`<div class="team-item">${avatar(t.nome)}<div class="team-info"><div class="team-name">${t.nome.split(' ')[0]} ${t.nome.split(' ').at(-1)}</div><div class="team-sub">${t.especialidade} · ${getTecRegioes(t).join(', ')||t.regiao||'—'}</div><div class="carga-row"><div class="load-bar">${pips}</div><span class="carga-num">${cnt} OS</span></div></div><div style="text-align:right"><div class="dot-badge"><span class="dot ${dotCls}"></span><span style="font-size:10px">${STATUS_TEC[t.status]}</span></div></div></div>`
   }).join('')
 }
 function setDashChip(el,val){dashChip=val;document.querySelectorAll('#view-dashboard .chip').forEach(c=>c.classList.remove('active'));el.classList.add('active');renderDashboard()}
@@ -1010,7 +1030,7 @@ function renderTecnicos(){
   let filtered=tecnicos.filter(t=>{
     const ms=tecFilter==='all'||t.status===tecFilter
     // FIX #2 — busca também por técnico na view técnicos
-    const mq=!searchQuery||t.nome.toLowerCase().includes(searchQuery)||t.especialidade.toLowerCase().includes(searchQuery)||t.regiao.toLowerCase().includes(searchQuery)
+    const mq=!searchQuery||t.nome.toLowerCase().includes(searchQuery)||t.especialidade.toLowerCase().includes(searchQuery)||getTecRegioes(t).join(' ').toLowerCase().includes(searchQuery)
     return ms&&mq
   })
   const disp=tecnicos.filter(t=>t.status==='disponivel').length
@@ -1026,7 +1046,7 @@ function renderTecnicos(){
     return`<div class="tech-card">
       <div style="display:flex;align-items:center;gap:10px;margin-bottom:12px">${avatar(t.nome,true)}<div style="flex:1;min-width:0"><div style="font-size:13px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${t.nome}</div><div style="font-size:11px;color:var(--text3)">${t.especialidade} · ${SEN_LABEL[t.senioridade]||t.senioridade}</div></div><div class="dot ${dotCls}" style="margin-top:2px"></div></div>
       <div style="font-size:11px">
-        <div style="display:flex;justify-content:space-between;padding:4px 0;border-bottom:1px solid var(--border)"><span style="color:var(--text3)">Região</span><span style="font-weight:500">${t.regiao}</span></div>
+        <div style="display:flex;justify-content:space-between;padding:4px 0;border-bottom:1px solid var(--border);align-items:flex-start"><span style="color:var(--text3)">Regiões</span><span style="font-weight:500;text-align:right;max-width:140px">${getTecRegioes(t).map(r=>`<span style="display:inline-block;background:rgba(25,224,152,.12);color:#0a7a52;border-radius:4px;padding:1px 6px;font-size:10px;font-weight:700;margin:1px">${r}</span>`).join('')||'—'}</span></div>
         <div style="display:flex;justify-content:space-between;padding:4px 0;border-bottom:1px solid var(--border);align-items:center"><span style="color:var(--text3)">Carga</span><div style="display:flex;align-items:center;gap:5px"><div class="load-bar">${pips}</div><span style="font-weight:600;color:${cntColor}">${cnt} OS</span></div></div>
         ${t.telefone?`<div style="display:flex;justify-content:space-between;padding:4px 0;border-bottom:1px solid var(--border)"><span style="color:var(--text3)">Telefone</span><span style="font-weight:500">${t.telefone}</span></div>`:''}
       </div>
@@ -1050,6 +1070,46 @@ function checkFolgaOnEdit(){
   }
 }
 
+// ── helpers de checkbox de regiões ────────
+const TODAS_REGIOES=['Zona Sul','Zona Norte','Zona Leste','Zona Oeste','Centro']
+
+function getRegioesChecked(){
+  return TODAS_REGIOES.filter(r=>{
+    const cb=document.querySelector(`#t-regioes-wrap input[value="${r}"]`)
+    return cb&&cb.checked
+  })
+}
+
+function setRegioesChecked(regioes){
+  TODAS_REGIOES.forEach(r=>{
+    const cb=document.querySelector(`#t-regioes-wrap input[value="${r}"]`)
+    if(cb) cb.checked=regioes.includes(r)
+  })
+  onRegCheckbox()
+}
+
+function onRegCheckbox(){
+  const selecionadas=getRegioesChecked()
+  const MAX=3
+  // se chegou em 3, desabilita os desmarcados
+  TODAS_REGIOES.forEach(r=>{
+    const cb=document.querySelector(`#t-regioes-wrap input[value="${r}"]`)
+    const lbl=cb?.closest('label')
+    if(!cb) return
+    if(selecionadas.length>=MAX && !cb.checked){
+      cb.disabled=true
+      if(lbl) lbl.style.opacity='.45'
+    } else {
+      cb.disabled=false
+      if(lbl) lbl.style.opacity='1'
+    }
+    // destaque visual quando marcado
+    if(lbl) lbl.style.borderColor=cb.checked?'var(--brand-mint)':'var(--border)'
+  })
+  const errEl=document.getElementById('t-reg-error')
+  if(errEl) errEl.style.display='none'
+}
+
 function openTecModal(){
   editingTecId=null
   document.getElementById('tec-modal-title').textContent='Novo Técnico'
@@ -1057,9 +1117,18 @@ function openTecModal(){
   document.getElementById('t-tel').value=''
   document.getElementById('t-email').value=''
   document.getElementById('tec-form-error').style.display='none'
+  setRegioesChecked([])
+  // habilita todos
+  TODAS_REGIOES.forEach(r=>{
+    const cb=document.querySelector(`#t-regioes-wrap input[value="${r}"]`)
+    const lbl=cb?.closest('label')
+    if(cb){cb.disabled=false}
+    if(lbl){lbl.style.opacity='1';lbl.style.borderColor='var(--border)'}
+  })
   document.getElementById('modal-tec').style.display='flex'
   setTimeout(()=>document.getElementById('t-nome').focus(),100)
 }
+
 function openEditTec(id){
   const t=getTec(id);if(!t)return
   editingTecId=id
@@ -1067,43 +1136,45 @@ function openEditTec(id){
   document.getElementById('t-nome').value=t.nome
   document.getElementById('t-esp').value=t.especialidade
   document.getElementById('t-sen').value=t.senioridade
-  document.getElementById('t-reg').value=t.regiao
   document.getElementById('t-status').value=t.status==='em_atendimento'?'disponivel':t.status
   document.getElementById('t-tel').value=t.telefone||''
   document.getElementById('t-email').value=t.email||''
   document.getElementById('tec-form-error').style.display='none'
+  // preenche regiões — suporte a array e string legada
+  const regs=Array.isArray(t.regioes)&&t.regioes.length ? t.regioes : (t.regiao?[t.regiao]:[])
+  setRegioesChecked(regs)
   document.getElementById('modal-tec').style.display='flex'
 }
 async function submitTec(){
   const nome=document.getElementById('t-nome').value.trim()
   const err=document.getElementById('tec-form-error')
   if(!nome){err.textContent='Informe o nome';err.style.display='block';return}
+  const regioes=getRegioesChecked()
+  if(!regioes.length){
+    document.getElementById('t-reg-error').style.display='block'
+    return
+  }
   err.style.display='none'
   const novoStatus=document.getElementById('t-status').value
-  // FIX #4 — se mudar para folga e tiver OS ativas, abrir modal de reatribuição
+  const payload={
+    nome,
+    especialidade:document.getElementById('t-esp').value,
+    senioridade:document.getElementById('t-sen').value,
+    regioes,                          // array
+    regiao:regioes[0],                // mantém coluna legada com região principal
+    status:novoStatus,
+    telefone:document.getElementById('t-tel').value||null,
+    email:document.getElementById('t-email').value||null,
+  }
   if(editingTecId&&novoStatus==='folga'){
     const osAtivas=osPorTec(editingTecId)
     if(osAtivas.length>0){
       closeModal('modal-tec')
-      openFolgaModal(editingTecId,nome,osAtivas,{
-        nome,especialidade:document.getElementById('t-esp').value,
-        senioridade:document.getElementById('t-sen').value,
-        regiao:document.getElementById('t-reg').value,
-        status:'folga',
-        telefone:document.getElementById('t-tel').value||null,
-        email:document.getElementById('t-email').value||null,
-      })
+      openFolgaModal(editingTecId,nome,osAtivas,payload)
       return
     }
   }
-  await saveTecnico({
-    nome,especialidade:document.getElementById('t-esp').value,
-    senioridade:document.getElementById('t-sen').value,
-    regiao:document.getElementById('t-reg').value,
-    status:novoStatus,
-    telefone:document.getElementById('t-tel').value||null,
-    email:document.getElementById('t-email').value||null,
-  })
+  await saveTecnico(payload)
 }
 async function saveTecnico(payload){
   const btn=document.getElementById('tec-submit-btn')
@@ -1331,16 +1402,62 @@ async function openDetail(id){
 // ══════════════════════════════════════════
 // MODAL OS (criar)
 // ══════════════════════════════════════════
+function getTecRegioes(t){
+  // suporte a ambos: array (regioes) ou string legada (regiao)
+  if(Array.isArray(t.regioes)&&t.regioes.length) return t.regioes
+  if(t.regiao) return [t.regiao]
+  return []
+}
+
+function tecAtendeRegiao(t, regiao){
+  return getTecRegioes(t).includes(regiao)
+}
+
 function openOSModal(){
-  const disp=tecnicos.filter(t=>t.status!=='folga'&&t.status!=='offline')
-  document.getElementById('f-tec-count').textContent=`(${tecnicos.filter(t=>t.status==='disponivel').length} disponíve${tecnicos.filter(t=>t.status==='disponivel').length===1?'l':'is'})`
-  document.getElementById('f-tecnico').innerHTML='<option value="">— Sem atribuição —</option>'+disp.map(t=>`<option value="${t.id}">${t.nome} (${STATUS_TEC[t.status]})</option>`).join('')
+  const elegiveis=tecnicos.filter(t=>t.status!=='folga'&&t.status!=='offline')
+  const regiao=document.getElementById('f-regiao')?.value||''
+  _popularTecnicoSelect(elegiveis, regiao)
   document.getElementById('f-titulo').value=''
   document.getElementById('f-cliente').value=''
   document.getElementById('f-descricao').value=''
   document.getElementById('os-form-error').style.display='none'
   document.getElementById('modal-os').style.display='flex'
   setTimeout(()=>document.getElementById('f-titulo').focus(),100)
+}
+
+function _popularTecnicoSelect(elegiveis, regiao){
+  const compativeis = regiao ? elegiveis.filter(t=>tecAtendeRegiao(t,regiao)) : elegiveis
+  const outros      = regiao ? elegiveis.filter(t=>!tecAtendeRegiao(t,regiao)) : []
+  const disp = elegiveis.filter(t=>t.status==='disponivel')
+
+  document.getElementById('f-tec-count').textContent =
+    `(${disp.length} disponíve${disp.length===1?'l':'is'})`
+
+  let html = '<option value="">— Sem atribuição —</option>'
+
+  if(regiao && compativeis.length){
+    html += `<optgroup label="✓ Atuam em ${regiao}">`
+    html += compativeis.map(t=>
+      `<option value="${t.id}">${t.nome} · ${STATUS_TEC[t.status]}</option>`
+    ).join('')
+    html += '</optgroup>'
+  }
+
+  if(outros.length){
+    html += `<optgroup label="Fora da região (${regiao})">`
+    html += outros.map(t=>
+      `<option value="${t.id}">${t.nome} · ${STATUS_TEC[t.status]} · ${getTecRegioes(t).join(', ')||'—'}</option>`
+    ).join('')
+    html += '</optgroup>'
+  }
+
+  if(!regiao){
+    html += elegiveis.map(t=>
+      `<option value="${t.id}">${t.nome} · ${STATUS_TEC[t.status]}</option>`
+    ).join('')
+  }
+
+  document.getElementById('f-tecnico').innerHTML = html
 }
 async function submitOS(){
   const titulo=document.getElementById('f-titulo').value.trim()
