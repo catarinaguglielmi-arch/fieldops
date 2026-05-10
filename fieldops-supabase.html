@@ -1,0 +1,1068 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>FieldOps — Coordenação Operacional</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@300;400;500;600&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<style>
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+:root{
+  --bg:#f7f7f5;--surface:#ffffff;--surface2:#f2f2ef;--border:#e8e8e4;--border2:#d8d8d2;
+  --text:#1a1a18;--text2:#6b6b65;--text3:#9f9f98;
+  --accent:#1a1a18;--accent-fg:#ffffff;
+  --green:#16a34a;--green-bg:#dcfce7;
+  --blue:#2563eb;--blue-bg:#dbeafe;
+  --red:#dc2626;--red-bg:#fee2e2;
+  --orange:#ea580c;--orange-bg:#ffedd5;
+  --yellow:#ca8a04;--yellow-bg:#fef9c3;
+  --radius:10px;--radius-lg:14px;--radius-xl:18px;
+  --shadow:0 1px 3px rgba(0,0,0,.06),0 1px 2px rgba(0,0,0,.04);
+  --shadow-md:0 4px 12px rgba(0,0,0,.08),0 2px 4px rgba(0,0,0,.04);
+}
+html,body{height:100%;font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--text);font-size:14px;line-height:1.5;-webkit-font-smoothing:antialiased}
+button{font-family:inherit;cursor:pointer;border:none;background:none}
+input,select,textarea{font-family:inherit}
+
+/* ── Loading screen ── */
+#loading-screen{position:fixed;inset:0;background:var(--bg);display:flex;flex-direction:column;align-items:center;justify-content:center;gap:16px;z-index:999}
+#loading-screen.hidden{display:none}
+.loading-logo{width:44px;height:44px;background:var(--accent);border-radius:12px;display:flex;align-items:center;justify-content:center;color:#fff;font-size:16px;font-weight:700}
+.loading-text{font-size:13px;color:var(--text3)}
+.spinner{width:20px;height:20px;border:2px solid var(--border);border-top-color:var(--accent);border-radius:50%;animation:spin .7s linear infinite}
+@keyframes spin{to{transform:rotate(360deg)}}
+
+/* ── Login screen ── */
+#login-screen{position:fixed;inset:0;background:var(--bg);display:flex;align-items:center;justify-content:center;padding:20px;z-index:998}
+#login-screen.hidden{display:none}
+.login-box{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius-xl);padding:0;width:100%;max-width:360px;box-shadow:var(--shadow-md);overflow:hidden}
+.login-header{padding:28px 28px 20px;border-bottom:1px solid var(--border)}
+.login-logo{display:flex;align-items:center;gap:10px;margin-bottom:20px}
+.login-logo-mark{width:34px;height:34px;background:var(--accent);border-radius:9px;display:flex;align-items:center;justify-content:center;color:#fff;font-size:13px;font-weight:700}
+.login-logo-name{font-size:15px;font-weight:600}
+.login-logo-sub{font-size:11px;color:var(--text3)}
+.login-title{font-size:16px;font-weight:600;margin-bottom:4px}
+.login-sub{font-size:12px;color:var(--text3)}
+.demo-box{margin:16px 28px 0;background:#eff6ff;border:1px solid #bfdbfe;border-radius:var(--radius);padding:12px 14px}
+.demo-box-title{font-size:11px;font-weight:600;color:#1d4ed8;margin-bottom:8px}
+.demo-row{display:flex;justify-content:space-between;align-items:center;font-size:11px;margin-bottom:4px}
+.demo-row:last-child{margin-bottom:0}
+.demo-key{color:#3b82f6}
+.demo-val{font-family:'DM Mono',monospace;background:#dbeafe;color:#1e40af;padding:2px 8px;border-radius:5px;cursor:pointer;user-select:all}
+.login-form{padding:20px 28px 28px}
+.login-label{font-size:11px;font-weight:500;color:var(--text2);display:block;margin-bottom:5px}
+.login-input{width:100%;padding:9px 12px;font-size:13px;border:1px solid var(--border);border-radius:var(--radius);background:var(--surface2);color:var(--text);outline:none;transition:border .15s;margin-bottom:12px}
+.login-input:focus{border-color:var(--border2);background:#fff}
+.login-btn{width:100%;padding:10px;font-size:13px;font-weight:500;background:var(--accent);color:#fff;border-radius:var(--radius);cursor:pointer;border:none;transition:background .12s;display:flex;align-items:center;justify-content:center;gap:8px;margin-top:4px}
+.login-btn:hover{background:#333}
+.login-btn:disabled{opacity:.6;cursor:not-allowed}
+.login-error{font-size:11px;color:var(--red);background:var(--red-bg);padding:8px 10px;border-radius:var(--radius);margin-bottom:12px;display:none}
+
+/* ── App ── */
+#app{display:flex;height:100vh;overflow:hidden}
+#app.hidden{display:none}
+#sidebar{width:220px;flex-shrink:0;background:var(--surface);border-right:1px solid var(--border);display:flex;flex-direction:column}
+#main{flex:1;display:flex;flex-direction:column;overflow:hidden}
+#topbar{background:var(--surface);border-bottom:1px solid var(--border);padding:14px 24px;display:flex;align-items:center;gap:12px;flex-shrink:0}
+#content{flex:1;overflow-y:auto;padding:24px}
+
+/* ── Sidebar ── */
+.logo{padding:20px 16px 16px;border-bottom:1px solid var(--border)}
+.logo-mark{width:30px;height:30px;background:var(--accent);border-radius:8px;display:inline-flex;align-items:center;justify-content:center;color:#fff;font-size:12px;font-weight:600;vertical-align:middle;margin-right:8px}
+.logo-name{font-size:14px;font-weight:600;color:var(--text)}
+.logo-sub{font-size:11px;color:var(--text3);margin-top:1px}
+.nav{padding:10px 8px;flex:1}
+.nav-label{font-size:10px;font-weight:600;color:var(--text3);text-transform:uppercase;letter-spacing:.08em;padding:8px 8px 4px}
+.nav-item{display:flex;align-items:center;gap:10px;padding:8px 10px;border-radius:var(--radius);cursor:pointer;font-size:13px;color:var(--text2);transition:all .12s;margin-bottom:1px}
+.nav-item:hover{background:var(--surface2);color:var(--text)}
+.nav-item.active{background:var(--accent);color:#fff;font-weight:500}
+.nav-item .nav-icon{font-size:15px;width:18px;text-align:center;flex-shrink:0}
+.nav-badge{margin-left:auto;font-size:10px;font-weight:600;padding:1px 7px;border-radius:99px;background:var(--red);color:#fff}
+.nav-item.active .nav-badge{background:rgba(255,255,255,.25)}
+.sidebar-bottom{padding:10px 8px 16px;border-top:1px solid var(--border)}
+
+/* ── Topbar ── */
+.topbar-title{font-size:15px;font-weight:600;flex:1}
+.topbar-sub{font-size:11px;color:var(--text3);margin-top:1px}
+.search-wrap{position:relative}
+.search-wrap input{padding:7px 12px 7px 32px;font-size:12px;border:1px solid var(--border);border-radius:var(--radius);background:var(--surface2);color:var(--text);width:200px;outline:none;transition:border .15s}
+.search-wrap input:focus{border-color:var(--border2);background:#fff}
+.search-icon{position:absolute;left:10px;top:50%;transform:translateY(-50%);color:var(--text3);font-size:13px;pointer-events:none}
+.btn{display:inline-flex;align-items:center;gap:6px;padding:7px 14px;border-radius:var(--radius);font-size:12px;font-weight:500;transition:all .12s;cursor:pointer;border:1px solid transparent}
+.btn-primary{background:var(--accent);color:#fff}
+.btn-primary:hover{background:#333}
+.btn-secondary{background:var(--surface);color:var(--text);border-color:var(--border)}
+.btn-secondary:hover{background:var(--surface2)}
+.btn-ghost{color:var(--text2);border-color:var(--border)}
+.btn-ghost:hover{background:var(--surface2)}
+.btn:disabled{opacity:.5;cursor:not-allowed}
+
+/* ── Views ── */
+.view{display:none}.view.active{display:block}
+.page-header{display:flex;align-items:flex-start;justify-content:space-between;margin-bottom:20px}
+.page-title{font-size:18px;font-weight:600}
+.page-sub{font-size:12px;color:var(--text3);margin-top:3px}
+
+/* ── KPI ── */
+.kpi-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin-bottom:20px}
+.kpi-card{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius-lg);padding:16px;box-shadow:var(--shadow)}
+.kpi-label{font-size:11px;color:var(--text3);text-transform:uppercase;letter-spacing:.06em;margin-bottom:10px}
+.kpi-value{font-size:28px;font-weight:600;line-height:1;margin-bottom:6px;font-variant-numeric:tabular-nums}
+.kpi-meta{font-size:11px}
+.meta-good{color:var(--green)}.meta-bad{color:var(--red)}.meta-warn{color:var(--yellow)}.meta-neutral{color:var(--text3)}
+
+/* ── Alert ── */
+.alert-banner{display:flex;align-items:center;gap:10px;padding:12px 16px;background:var(--yellow-bg);border:1px solid #fde047;border-radius:var(--radius-lg);margin-bottom:16px;cursor:pointer}
+.alert-banner:hover{background:#fef08a}
+
+/* ── Two col ── */
+.two-col{display:grid;grid-template-columns:1fr 300px;gap:16px}
+
+/* ── Panel ── */
+.panel{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius-lg);overflow:hidden;box-shadow:var(--shadow)}
+.panel-header{padding:12px 16px;border-bottom:1px solid var(--border);display:flex;align-items:center;gap:10px}
+.panel-title{font-size:13px;font-weight:600;flex:1}
+
+/* ── Chips ── */
+.chip-row{display:flex;gap:4px;flex-wrap:wrap}
+.chip{padding:4px 11px;font-size:11px;border:1px solid var(--border);border-radius:99px;cursor:pointer;color:var(--text2);background:var(--surface);transition:all .12s;font-weight:500}
+.chip:hover{border-color:var(--border2);color:var(--text)}
+.chip.active{background:var(--accent);color:#fff;border-color:var(--accent)}
+
+/* ── Table ── */
+.table-wrap{overflow-x:auto}
+table{width:100%;border-collapse:collapse;font-size:12px}
+th{padding:9px 14px;text-align:left;font-size:10px;font-weight:600;color:var(--text3);border-bottom:1px solid var(--border);text-transform:uppercase;letter-spacing:.05em;white-space:nowrap}
+td{padding:11px 14px;border-bottom:1px solid var(--border);color:var(--text);vertical-align:middle}
+tr:last-child td{border-bottom:none}
+tbody tr{transition:background .08s}
+tbody tr:hover td{background:var(--surface2)}
+
+/* ── Badges ── */
+.badge{display:inline-flex;align-items:center;padding:2px 8px;border-radius:5px;font-size:10px;font-weight:600;white-space:nowrap}
+.badge-green{background:var(--green-bg);color:#15803d}
+.badge-blue{background:var(--blue-bg);color:#1d4ed8}
+.badge-yellow{background:var(--yellow-bg);color:#a16207}
+.badge-red{background:var(--red-bg);color:#b91c1c}
+.badge-gray{background:var(--surface2);color:var(--text2)}
+.dot-badge{display:inline-flex;align-items:center;gap:5px;font-size:11px;color:var(--text2)}
+.dot{width:7px;height:7px;border-radius:50%;flex-shrink:0}
+.dot-green{background:var(--green)}.dot-blue{background:var(--blue);animation:pulse-dot 2s infinite}
+.dot-orange{background:var(--orange)}.dot-gray{background:#9ca3af}.dot-red{background:var(--red)}
+@keyframes pulse-dot{0%,100%{opacity:1}50%{opacity:.4}}
+.atrasada-badge{display:inline-block;width:6px;height:6px;border-radius:50%;background:var(--red);animation:pulse-dot 1.2s infinite;margin-right:5px;vertical-align:middle}
+
+/* ── SLA ── */
+.sla-wrap{min-width:90px}
+.sla-label{font-size:11px;font-weight:500;margin-bottom:3px;font-family:'DM Mono',monospace}
+.sla-track{height:4px;border-radius:99px;background:var(--border);overflow:hidden}
+.sla-fill{height:100%;border-radius:99px;transition:width .3s}
+.sla-ok{color:var(--green)}.sla-ok .sla-fill{background:var(--green)}
+.sla-warn{color:var(--yellow)}.sla-warn .sla-fill{background:var(--yellow)}
+.sla-crit{color:var(--orange)}.sla-crit .sla-fill{background:var(--orange)}
+.sla-exp{color:var(--red)}.sla-exp .sla-fill{background:var(--red)}
+
+/* ── Team ── */
+.team-item{display:flex;align-items:center;gap:10px;padding:10px 14px;transition:background .08s}
+.team-item:hover{background:var(--surface2)}
+.team-item:not(:last-child){border-bottom:1px solid var(--border)}
+.avatar{width:32px;height:32px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:600;flex-shrink:0}
+.avatar-lg{width:40px;height:40px;font-size:13px}
+.av-a{background:#dbeafe;color:#1d4ed8}.av-b{background:#dcfce7;color:#15803d}
+.av-c{background:#ede9fe;color:#6d28d9}.av-d{background:#fce7f3;color:#be185d}
+.av-e{background:#ffedd5;color:#c2410c}.av-f{background:#f0fdf4;color:#166534}
+.team-info{flex:1;min-width:0}
+.team-name{font-size:12px;font-weight:500;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.team-sub{font-size:11px;color:var(--text3)}
+.load-bar{display:flex;gap:2px;margin-top:3px}
+.load-pip{width:8px;height:4px;border-radius:2px;background:var(--border)}
+.load-pip.on{background:var(--accent)}
+
+/* ── Cards técnicos ── */
+.cards-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(220px,1fr));gap:12px}
+.tech-card{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius-lg);padding:16px;box-shadow:var(--shadow);transition:border-color .15s}
+.tech-card:hover{border-color:var(--border2)}
+
+/* ── Analytics ── */
+.analytics-grid{display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-top:16px}
+.hbar-row{display:flex;align-items:center;gap:10px;padding:5px 0}
+.hbar-label{font-size:11px;color:var(--text2);width:110px;flex-shrink:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.hbar-track{flex:1;height:8px;background:var(--surface2);border-radius:99px;overflow:hidden}
+.hbar-fill{height:100%;border-radius:99px;transition:width .4s}
+.hbar-val{font-size:11px;font-weight:600;width:20px;text-align:right;flex-shrink:0}
+.stat-row{display:flex;justify-content:space-between;align-items:center;padding:9px 0;border-bottom:1px solid var(--border);font-size:12px}
+.stat-row:last-child{border-bottom:none}
+.stat-label{color:var(--text2)}.stat-val{font-weight:600}
+
+/* ── Modal ── */
+.modal-overlay{position:fixed;inset:0;background:rgba(0,0,0,.35);z-index:100;display:flex;align-items:center;justify-content:center;padding:16px;backdrop-filter:blur(2px)}
+.modal{background:var(--surface);border-radius:var(--radius-xl);border:1px solid var(--border);width:100%;max-width:480px;max-height:90vh;overflow-y:auto;box-shadow:var(--shadow-md)}
+.modal-header{display:flex;align-items:center;padding:18px 20px 0;margin-bottom:16px}
+.modal-title{font-size:14px;font-weight:600;flex:1}
+.modal-close{width:28px;height:28px;border-radius:7px;display:flex;align-items:center;justify-content:center;color:var(--text3);font-size:18px;cursor:pointer;line-height:1}
+.modal-close:hover{background:var(--surface2)}
+.modal-body{padding:0 20px 20px}
+.modal-footer{display:flex;justify-content:flex-end;gap:8px;margin-top:20px}
+.form-grid{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+.form-full{grid-column:span 2}
+.form-group{display:flex;flex-direction:column;gap:5px}
+.form-label{font-size:11px;font-weight:500;color:var(--text2)}
+.form-control{padding:8px 10px;font-size:12px;border:1px solid var(--border);border-radius:var(--radius);background:var(--surface2);color:var(--text);outline:none;transition:border .15s;width:100%}
+.form-control:focus{border-color:var(--border2);background:#fff}
+.form-error{font-size:11px;color:var(--red);background:var(--red-bg);padding:8px 10px;border-radius:var(--radius);margin-bottom:8px;display:none}
+
+/* ── Detail ── */
+.detail-grid{display:grid;grid-template-columns:1fr 280px;gap:20px}
+.detail-panel{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius-lg);padding:18px;box-shadow:var(--shadow)}
+.detail-label{font-size:10px;font-weight:600;color:var(--text3);text-transform:uppercase;letter-spacing:.07em;margin-bottom:14px}
+.detail-row{display:flex;justify-content:space-between;padding:7px 0;border-bottom:1px solid var(--border);font-size:12px}
+.detail-row:last-child{border-bottom:none}
+.detail-key{color:var(--text3)}.detail-val{font-weight:500;text-align:right;max-width:60%}
+.timeline-item{display:flex;gap:10px;padding-bottom:14px;position:relative}
+.timeline-item:not(:last-child)::before{content:'';position:absolute;left:5px;top:14px;bottom:0;width:1px;background:var(--border)}
+.timeline-dot{width:11px;height:11px;border-radius:50%;flex-shrink:0;margin-top:3px}
+.timeline-text{font-size:12px;line-height:1.4}
+.timeline-time{font-size:11px;color:var(--text3);margin-top:2px}
+.back-btn{display:inline-flex;align-items:center;gap:6px;font-size:12px;color:var(--text3);cursor:pointer;margin-bottom:18px}
+.back-btn:hover{color:var(--text)}
+.sla-panel{border-radius:var(--radius-lg);padding:16px;border:1px solid}
+.sla-panel.ok{background:#f0fdf4;border-color:#bbf7d0}
+.sla-panel.warn{background:#fefce8;border-color:#fde047}
+.sla-panel.crit{background:#fff7ed;border-color:#fed7aa}
+.sla-panel.exp{background:var(--red-bg);border-color:#fca5a5}
+
+/* ── Filters ── */
+.filters-row{display:flex;align-items:center;gap:10px;margin-bottom:16px;flex-wrap:wrap}
+.select-filter{padding:6px 10px;font-size:11px;border:1px solid var(--border);border-radius:99px;background:var(--surface);color:var(--text2);outline:none;cursor:pointer}
+.action-btn{opacity:0;font-size:11px;padding:4px 10px;border-radius:6px;border:1px solid var(--border);color:var(--text2);transition:all .1s;background:var(--surface)}
+.action-btn:hover{background:var(--surface2)}
+tr:hover .action-btn{opacity:1}
+.os-num{font-family:'DM Mono',monospace;font-size:11px;color:var(--text3)}
+.empty{padding:48px 20px;text-align:center;color:var(--text3)}
+.empty-icon{font-size:28px;margin-bottom:8px}
+.empty-title{font-size:13px;font-weight:500;color:var(--text2);margin-bottom:4px}
+
+/* ── Toast ── */
+.toast{position:fixed;bottom:24px;right:24px;background:var(--accent);color:#fff;padding:10px 16px;border-radius:var(--radius-lg);font-size:12px;font-weight:500;box-shadow:var(--shadow-md);z-index:500;transform:translateY(80px);opacity:0;transition:all .25s;pointer-events:none}
+.toast.show{transform:translateY(0);opacity:1}
+.toast.error{background:var(--red)}
+
+@media(max-width:900px){
+  .kpi-grid{grid-template-columns:1fr 1fr}
+  .two-col,.detail-grid,.analytics-grid{grid-template-columns:1fr}
+  #sidebar{width:56px}
+  .nav-item span:not(.nav-icon):not(.nav-badge),.logo-name,.logo-sub{display:none}
+  .logo{padding:14px 12px}
+}
+</style>
+</head>
+<body>
+
+<!-- ══ LOADING ══ -->
+<div id="loading-screen">
+  <div class="loading-logo">FO</div>
+  <div class="spinner"></div>
+  <div class="loading-text">Carregando FieldOps...</div>
+</div>
+
+<!-- ══ LOGIN ══ -->
+<div id="login-screen" class="hidden">
+  <div class="login-box">
+    <div class="login-header">
+      <div class="login-logo">
+        <div class="login-logo-mark">FO</div>
+        <div>
+          <div class="login-logo-name">FieldOps</div>
+          <div class="login-logo-sub">Coordenação Operacional</div>
+        </div>
+      </div>
+      <div class="login-title">Entrar</div>
+      <div class="login-sub">Acesse o painel de coordenação</div>
+    </div>
+    <div class="demo-box">
+      <div class="demo-box-title">Acesso de demonstração</div>
+      <div class="demo-row">
+        <span class="demo-key">E-mail</span>
+        <span class="demo-val" onclick="document.getElementById('login-email').value=this.textContent">demo@fieldops.com</span>
+      </div>
+      <div class="demo-row">
+        <span class="demo-key">Senha</span>
+        <span class="demo-val" onclick="document.getElementById('login-pass').value=this.textContent">fieldops2025</span>
+      </div>
+    </div>
+    <div class="login-form">
+      <div id="login-error" class="login-error"></div>
+      <label class="login-label">E-mail</label>
+      <input class="login-input" id="login-email" type="email" value="demo@fieldops.com" placeholder="demo@fieldops.com">
+      <label class="login-label">Senha</label>
+      <input class="login-input" id="login-pass" type="password" value="fieldops2025" placeholder="••••••••" onkeydown="if(event.key==='Enter')doLogin()">
+      <button class="login-btn" id="login-btn" onclick="doLogin()">
+        <span id="login-btn-text">Entrar</span>
+      </button>
+    </div>
+  </div>
+</div>
+
+<!-- ══ APP ══ -->
+<div id="app" class="hidden">
+  <aside id="sidebar">
+    <div class="logo">
+      <span class="logo-mark">FO</span>
+      <div style="display:inline-block;vertical-align:middle">
+        <div class="logo-name">FieldOps</div>
+        <div class="logo-sub">Coordenação</div>
+      </div>
+    </div>
+    <nav class="nav">
+      <div class="nav-label">Operação</div>
+      <div class="nav-item active" onclick="nav('dashboard',this)"><span class="nav-icon">⊞</span><span>Dashboard</span></div>
+      <div class="nav-item" onclick="nav('ordens',this)"><span class="nav-icon">☰</span><span>Ordens de Serviço</span><span class="nav-badge" id="sidebar-badge" style="display:none"></span></div>
+      <div class="nav-item" onclick="nav('tecnicos',this)"><span class="nav-icon">◎</span><span>Técnicos</span></div>
+      <div class="nav-item" onclick="nav('analytics',this)"><span class="nav-icon">◫</span><span>Analytics</span></div>
+    </nav>
+    <div class="sidebar-bottom">
+      <div class="nav-item" style="color:var(--text3)" onclick="doLogout()"><span class="nav-icon">→</span><span>Sair</span></div>
+    </div>
+  </aside>
+
+  <div id="main">
+    <div id="topbar">
+      <div style="flex:1">
+        <div class="topbar-title" id="topbar-title">Torre de Controle</div>
+        <div class="topbar-sub" id="topbar-clock"></div>
+      </div>
+      <div class="search-wrap">
+        <span class="search-icon">🔍</span>
+        <input type="text" placeholder="Buscar OS, técnico..." id="search-input" oninput="onSearch()">
+      </div>
+      <button class="btn btn-primary" onclick="openOSModal()">+ Nova OS</button>
+    </div>
+
+    <div id="content">
+
+      <!-- DASHBOARD -->
+      <div class="view active" id="view-dashboard">
+        <div id="alert-banner" class="alert-banner" onclick="nav('ordens',document.querySelectorAll('.nav-item')[1])" style="display:none">
+          <span style="font-size:16px">⚠️</span>
+          <span style="font-size:12px;color:#713f12;flex:1"><strong id="alert-text"></strong> — ação imediata necessária.</span>
+          <span style="font-size:11px;color:#92400e;text-decoration:underline">Ver todas →</span>
+        </div>
+        <div class="kpi-grid">
+          <div class="kpi-card"><div class="kpi-label">👥 Técnicos ativos</div><div class="kpi-value" id="kpi-ativos">—</div><div class="kpi-meta meta-good" id="kpi-disp-meta"></div></div>
+          <div class="kpi-card"><div class="kpi-label">📋 OS abertas</div><div class="kpi-value" id="kpi-os-abertas">—</div><div class="kpi-meta" id="kpi-os-meta"></div></div>
+          <div class="kpi-card"><div class="kpi-label">⏱ SLA em risco</div><div class="kpi-value" id="kpi-atrasadas" style="color:var(--red)">—</div><div class="kpi-meta" id="kpi-sla-meta"></div></div>
+          <div class="kpi-card"><div class="kpi-label">✅ Concluídas hoje</div><div class="kpi-value" id="kpi-concluidas" style="color:var(--green)">—</div><div class="kpi-meta meta-neutral">Operação em andamento</div></div>
+        </div>
+        <div class="two-col">
+          <div class="panel">
+            <div class="panel-header">
+              <span class="panel-title">Ordens ativas</span>
+              <div class="chip-row">
+                <div class="chip active" onclick="setDashChip(this,'all')">Todas</div>
+                <div class="chip" onclick="setDashChip(this,'critica')">Crítica</div>
+                <div class="chip" onclick="setDashChip(this,'em_andamento')">Em andamento</div>
+              </div>
+            </div>
+            <div class="table-wrap"><table><thead><tr><th>OS</th><th>Título</th><th>Técnico</th><th>Prioridade</th><th>SLA</th><th>Status</th></tr></thead><tbody id="dash-tbody"></tbody></table></div>
+          </div>
+          <div class="panel"><div class="panel-header"><span class="panel-title">Equipe de campo</span></div><div id="team-list"></div></div>
+        </div>
+      </div>
+
+      <!-- ORDENS -->
+      <div class="view" id="view-ordens">
+        <div class="page-header">
+          <div><div class="page-title">Ordens de Serviço</div><div class="page-sub" id="ordens-count"></div></div>
+          <button class="btn btn-primary" onclick="openOSModal()">+ Nova OS</button>
+        </div>
+        <div class="filters-row">
+          <div class="chip-row" id="ordens-chips">
+            <div class="chip active" onclick="setOrdensFilter(this,'all')">Todas</div>
+            <div class="chip" onclick="setOrdensFilter(this,'aberta')">Abertas</div>
+            <div class="chip" onclick="setOrdensFilter(this,'em_andamento')">Em andamento</div>
+            <div class="chip" onclick="setOrdensFilter(this,'concluida')">Concluídas</div>
+            <div class="chip" onclick="setOrdensFilter(this,'cancelada')">Canceladas</div>
+          </div>
+          <select class="select-filter" id="regiao-filter" onchange="renderOrdens()">
+            <option value="">Todas as regiões</option>
+            <option>Zona Sul</option><option>Zona Norte</option><option>Zona Leste</option><option>Zona Oeste</option><option>Centro</option>
+          </select>
+        </div>
+        <div class="panel"><div class="table-wrap"><table><thead><tr><th>OS</th><th>Título</th><th>Tipo</th><th>Cliente</th><th>Técnico</th><th>Prioridade</th><th>SLA</th><th>Status</th><th></th></tr></thead><tbody id="ordens-tbody"></tbody></table></div></div>
+      </div>
+
+      <!-- TÉCNICOS -->
+      <div class="view" id="view-tecnicos">
+        <div class="page-header">
+          <div><div class="page-title">Técnicos de Campo</div><div class="page-sub" id="tec-sub"></div></div>
+          <button class="btn btn-primary" onclick="openTecModal()">+ Novo técnico</button>
+        </div>
+        <div class="filters-row">
+          <div class="chip-row">
+            <div class="chip active" onclick="setTecFilter(this,'all')">Todos</div>
+            <div class="chip" onclick="setTecFilter(this,'disponivel')">Disponíveis</div>
+            <div class="chip" onclick="setTecFilter(this,'em_atendimento')">Em atendimento</div>
+            <div class="chip" onclick="setTecFilter(this,'folga')">Folga</div>
+          </div>
+        </div>
+        <div class="cards-grid" id="tec-cards"></div>
+      </div>
+
+      <!-- ANALYTICS -->
+      <div class="view" id="view-analytics">
+        <div class="page-header"><div><div class="page-title">Analytics Operacional</div><div class="page-sub">Indicadores e KPIs</div></div></div>
+        <div class="kpi-grid">
+          <div class="kpi-card"><div class="kpi-label">📊 SLA cumprido</div><div class="kpi-value" id="an-sla" style="color:var(--green)">—</div><div class="kpi-meta meta-neutral" id="an-sla-sub"></div></div>
+          <div class="kpi-card"><div class="kpi-label">⏱ Tempo médio</div><div class="kpi-value" id="an-tmr">—</div><div class="kpi-meta meta-neutral">Da abertura à conclusão</div></div>
+          <div class="kpi-card"><div class="kpi-label">🔴 OS atrasadas</div><div class="kpi-value" id="an-atrasadas" style="color:var(--red)">—</div><div class="kpi-meta meta-bad">Acima do SLA</div></div>
+          <div class="kpi-card"><div class="kpi-label">👥 Utilização</div><div class="kpi-value" id="an-util">—</div><div class="kpi-meta meta-neutral">Técnicos em atendimento</div></div>
+        </div>
+        <div class="analytics-grid">
+          <div class="panel" style="padding:16px"><div class="panel-title" style="margin-bottom:14px">OS por tipo</div><div id="chart-tipo"></div></div>
+          <div class="panel" style="padding:16px"><div class="panel-title" style="margin-bottom:14px">Carga por técnico</div><div id="chart-carga"></div></div>
+          <div class="panel" style="padding:16px"><div class="panel-title" style="margin-bottom:14px">OS por região</div><div id="chart-regiao"></div></div>
+          <div class="panel" style="padding:16px"><div class="panel-title" style="margin-bottom:14px">Indicadores de SLA</div><div id="chart-sla-stats"></div></div>
+        </div>
+      </div>
+
+      <!-- DETALHE OS -->
+      <div class="view" id="view-os-detail">
+        <div class="back-btn" onclick="nav('ordens',document.querySelectorAll('.nav-item')[1])">← Voltar</div>
+        <div id="os-detail-content"></div>
+      </div>
+
+    </div>
+  </div>
+</div>
+
+<!-- MODAL OS -->
+<div class="modal-overlay" id="modal-os" style="display:none">
+  <div class="modal">
+    <div class="modal-header"><span class="modal-title">Nova Ordem de Serviço</span><span class="modal-close" onclick="closeModal('modal-os')">×</span></div>
+    <div class="modal-body">
+      <div id="os-form-error" class="form-error"></div>
+      <div class="form-grid">
+        <div class="form-group form-full"><label class="form-label">Título</label><input class="form-control" id="f-titulo" placeholder="Ex: Falha no compressor — Unidade Lapa"></div>
+        <div class="form-group"><label class="form-label">Tipo</label><select class="form-control" id="f-tipo"><option value="corretiva">Corretiva</option><option value="preventiva">Preventiva</option><option value="instalacao">Instalação</option><option value="vistoria">Vistoria</option></select></div>
+        <div class="form-group"><label class="form-label">Prioridade</label><select class="form-control" id="f-prioridade"><option value="critica">🔴 Crítica</option><option value="alta">🟠 Alta</option><option value="media" selected>🟡 Média</option><option value="baixa">🟢 Baixa</option></select></div>
+        <div class="form-group"><label class="form-label">Cliente</label><input class="form-control" id="f-cliente" placeholder="Nome do cliente"></div>
+        <div class="form-group"><label class="form-label">Região</label><select class="form-control" id="f-regiao"><option>Zona Sul</option><option>Zona Norte</option><option>Zona Leste</option><option>Zona Oeste</option><option>Centro</option></select></div>
+        <div class="form-group"><label class="form-label">Técnico <span id="f-tec-count" style="color:var(--text3);font-weight:400"></span></label><select class="form-control" id="f-tecnico"></select></div>
+        <div class="form-group"><label class="form-label">SLA</label><select class="form-control" id="f-sla"><option value="2">2h — Crítico</option><option value="4">4h — Urgente</option><option value="8" selected>8h — Padrão</option><option value="24">24h — Planejado</option></select></div>
+        <div class="form-group form-full"><label class="form-label">Descrição <span style="color:var(--text3);font-weight:400">(opcional)</span></label><textarea class="form-control" id="f-descricao" rows="2" placeholder="Detalhes do problema..."></textarea></div>
+      </div>
+      <div class="modal-footer">
+        <button class="btn btn-secondary" onclick="closeModal('modal-os')">Cancelar</button>
+        <button class="btn btn-primary" id="os-submit-btn" onclick="submitOS()">Criar OS</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- MODAL TÉCNICO -->
+<div class="modal-overlay" id="modal-tec" style="display:none">
+  <div class="modal">
+    <div class="modal-header"><span class="modal-title" id="tec-modal-title">Novo Técnico</span><span class="modal-close" onclick="closeModal('modal-tec')">×</span></div>
+    <div class="modal-body">
+      <div id="tec-form-error" class="form-error"></div>
+      <div class="form-grid">
+        <div class="form-group form-full"><label class="form-label">Nome completo</label><input class="form-control" id="t-nome" placeholder="Nome do técnico"></div>
+        <div class="form-group"><label class="form-label">Especialidade</label><select class="form-control" id="t-esp"><option>Elétrica</option><option>Hidráulica</option><option>HVAC</option><option>TI</option><option>Geral</option></select></div>
+        <div class="form-group"><label class="form-label">Senioridade</label><select class="form-control" id="t-sen"><option value="junior">Júnior</option><option value="pleno" selected>Pleno</option><option value="senior">Sênior</option><option value="especialista">Especialista</option></select></div>
+        <div class="form-group"><label class="form-label">Região</label><select class="form-control" id="t-reg"><option>Zona Sul</option><option>Zona Norte</option><option>Zona Leste</option><option>Zona Oeste</option><option>Centro</option></select></div>
+        <div class="form-group"><label class="form-label">Status</label><select class="form-control" id="t-status"><option value="disponivel">Disponível</option><option value="folga">Folga</option></select></div>
+        <div class="form-group"><label class="form-label">Telefone <span style="color:var(--text3);font-weight:400">(opcional)</span></label><input class="form-control" id="t-tel" placeholder="(11) 99999-0000"></div>
+        <div class="form-group"><label class="form-label">E-mail <span style="color:var(--text3);font-weight:400">(opcional)</span></label><input class="form-control" id="t-email" placeholder="nome@empresa.com"></div>
+      </div>
+      <div class="modal-footer">
+        <button class="btn btn-secondary" onclick="closeModal('modal-tec')">Cancelar</button>
+        <button class="btn btn-primary" id="tec-submit-btn" onclick="submitTec()">Salvar</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- TOAST -->
+<div class="toast" id="toast"></div>
+
+<script>
+// ══════════════════════════════════════════════════════════
+// SUPABASE
+// ══════════════════════════════════════════════════════════
+const SUPABASE_URL = 'https://qfwtequecvbffomtcjua.supabase.co'
+const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InFmd3RlcXVlY3ZiZmZvbXRjanVhIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzgzNTY3MjYsImV4cCI6MjA5MzkzMjcyNn0.-BhK3sLB23K04SR3f6fzQLTGSkrsTv7Gd-xQLqhqZh0'
+const { createClient } = supabase
+const db = createClient(SUPABASE_URL, SUPABASE_KEY)
+
+// ══════════════════════════════════════════════════════════
+// ESTADO
+// ══════════════════════════════════════════════════════════
+let tecnicos = []
+let ordens   = []
+let currentView     = 'dashboard'
+let dashChip        = 'all'
+let ordensFilter    = 'all'
+let tecFilter       = 'all'
+let searchQuery     = ''
+let editingTecId    = null
+
+// ══════════════════════════════════════════════════════════
+// UTILITÁRIOS
+// ══════════════════════════════════════════════════════════
+const TIPO_LABEL   = {corretiva:'Corretiva',preventiva:'Preventiva',instalacao:'Instalação',vistoria:'Vistoria'}
+const PRIO_LABEL   = {critica:'Crítica',alta:'Alta',media:'Média',baixa:'Baixa'}
+const STATUS_LABEL = {aberta:'Aberta',em_andamento:'Em andamento',concluida:'Concluída',cancelada:'Cancelada'}
+const SEN_LABEL    = {junior:'Júnior',pleno:'Pleno',senior:'Sênior',especialista:'Especialista'}
+const STATUS_TEC   = {disponivel:'Disponível',em_atendimento:'Em atendimento',folga:'Folga',offline:'Offline'}
+const NEXT_STATUS  = {aberta:'em_andamento',em_andamento:'concluida'}
+const NEXT_LABEL   = {aberta:'Iniciar',em_andamento:'Concluir'}
+
+function getTec(id){ return tecnicos.find(t=>t.id===id) }
+function osPorTec(id){ return ordens.filter(o=>(o.status==='aberta'||o.status==='em_andamento')&&o.tecnico_id===id).length }
+
+function slaInfo(os){
+  const prazo  = new Date(os.prazo_sla).getTime()
+  const inicio = os.iniciada_em ? new Date(os.iniciada_em).getTime() : new Date(os.created_at).getTime()
+  const total   = prazo - inicio
+  const restante = prazo - Date.now()
+  const pct = Math.min(100, Math.max(0, Math.round(((Date.now()-inicio)/total)*100)))
+  const hrs = restante/3600000
+  if(restante<0){
+    const a=Math.abs(hrs)
+    return{cls:'sla-exp',label:a<1?`${Math.round(a*60)}min atrasada`:`${a.toFixed(1)}h atrasada`,pct:100,expired:true,hrs}
+  }
+  if(hrs<1) return{cls:'sla-crit',label:`${Math.round(hrs*60)}min`,pct,expired:false,hrs}
+  if(hrs<3) return{cls:'sla-warn',label:`${hrs.toFixed(1)}h`,pct,expired:false,hrs}
+  return{cls:'sla-ok',label:`${Math.round(hrs)}h restantes`,pct,expired:false,hrs}
+}
+
+function slaHtml(os){
+  if(os.status==='concluida'||os.status==='cancelada') return '<span style="color:var(--text3)">—</span>'
+  const s=slaInfo(os)
+  return `<div class="sla-wrap ${s.cls}"><div class="sla-label">${s.label}</div><div class="sla-track"><div class="sla-fill" style="width:${s.pct}%"></div></div></div>`
+}
+
+function statusBadge(s){
+  const m={aberta:'badge-yellow',em_andamento:'badge-blue',concluida:'badge-green',cancelada:'badge-gray'}
+  return `<span class="badge ${m[s]||'badge-gray'}">${STATUS_LABEL[s]||s}</span>`
+}
+
+function prioBadge(p){
+  const c={critica:'var(--red)',alta:'var(--orange)',media:'var(--yellow)',baixa:'var(--green)'}
+  return `<span class="dot-badge"><span class="dot" style="background:${c[p]}"></span>${PRIO_LABEL[p]||p}</span>`
+}
+
+const AV=['av-a','av-b','av-c','av-d','av-e','av-f']
+function avColor(nome){return AV[nome.charCodeAt(0)%AV.length]}
+function initials(nome){return nome.split(' ').filter(Boolean).slice(0,2).map(n=>n[0].toUpperCase()).join('')}
+function avatar(nome,lg=false){return `<div class="avatar ${lg?'avatar-lg':''} ${avColor(nome)}">${initials(nome)}</div>`}
+function fmtDate(d){if(!d)return '—';const dd=new Date(d);return dd.toLocaleDateString('pt-BR')+' '+dd.toLocaleTimeString('pt-BR',{hour:'2-digit',minute:'2-digit'})}
+function fmtRel(d){
+  const diff=Date.now()-new Date(d).getTime(),m=Math.round(diff/60000)
+  if(m<1)return 'agora';if(m<60)return `${m}min atrás`
+  const h=Math.round(m/60);if(h<24)return `${h}h atrás`
+  return `${Math.round(h/24)}d atrás`
+}
+
+function showToast(msg,err=false){
+  const t=document.getElementById('toast')
+  t.textContent=msg;t.className='toast'+(err?' error':'')
+  requestAnimationFrame(()=>{t.classList.add('show');setTimeout(()=>t.classList.remove('show'),2800)})
+}
+
+// ══════════════════════════════════════════════════════════
+// AUTH
+// ══════════════════════════════════════════════════════════
+async function doLogin(){
+  const email=document.getElementById('login-email').value.trim()
+  const pass=document.getElementById('login-pass').value
+  const err=document.getElementById('login-error')
+  const btn=document.getElementById('login-btn')
+  err.style.display='none'
+  btn.disabled=true
+  document.getElementById('login-btn-text').textContent='Entrando...'
+
+  const {error}=await db.auth.signInWithPassword({email,password:pass})
+  if(error){
+    err.textContent='E-mail ou senha inválidos. Use as credenciais demo.'
+    err.style.display='block'
+    btn.disabled=false
+    document.getElementById('login-btn-text').textContent='Entrar'
+  } else {
+    await initApp()
+  }
+}
+
+async function doLogout(){
+  await db.auth.signOut()
+  location.reload()
+}
+
+// ══════════════════════════════════════════════════════════
+// DATA
+// ══════════════════════════════════════════════════════════
+async function loadData(){
+  const [t,o]=await Promise.all([
+    db.from('tecnicos').select('*').order('nome'),
+    db.from('ordens_servico').select('*, tecnico:tecnicos(*)').order('prazo_sla')
+  ])
+  tecnicos = t.data || []
+  ordens   = o.data || []
+}
+
+// Realtime subscriptions
+function subscribeRealtime(){
+  db.channel('fieldops-rt')
+    .on('postgres_changes',{event:'*',schema:'public',table:'tecnicos'},()=>loadData().then(()=>refreshCurrent()))
+    .on('postgres_changes',{event:'*',schema:'public',table:'ordens_servico'},()=>loadData().then(()=>refreshCurrent()))
+    .subscribe()
+}
+
+function refreshCurrent(){
+  if(currentView==='dashboard')   renderDashboard()
+  else if(currentView==='ordens') renderOrdens()
+  else if(currentView==='tecnicos') renderTecnicos()
+  else if(currentView==='analytics') renderAnalytics()
+}
+
+// ══════════════════════════════════════════════════════════
+// INIT
+// ══════════════════════════════════════════════════════════
+async function initApp(){
+  document.getElementById('loading-screen').classList.remove('hidden')
+  document.getElementById('login-screen').classList.add('hidden')
+  document.getElementById('app').classList.add('hidden')
+
+  await loadData()
+  subscribeRealtime()
+
+  document.getElementById('loading-screen').classList.add('hidden')
+  document.getElementById('app').classList.remove('hidden')
+  renderDashboard()
+  updateClock()
+}
+
+async function boot(){
+  const {data:{session}} = await db.auth.getSession()
+  if(session){
+    await initApp()
+  } else {
+    document.getElementById('loading-screen').classList.add('hidden')
+    document.getElementById('login-screen').classList.remove('hidden')
+  }
+}
+
+// ══════════════════════════════════════════════════════════
+// NAVEGAÇÃO
+// ══════════════════════════════════════════════════════════
+function nav(view,el){
+  currentView=view
+  document.querySelectorAll('.view').forEach(v=>v.classList.remove('active'))
+  document.getElementById('view-'+view).classList.add('active')
+  document.querySelectorAll('.nav-item').forEach(n=>n.classList.remove('active'))
+  if(el) el.classList.add('active')
+  const titles={dashboard:'Torre de Controle',ordens:'Ordens de Serviço',tecnicos:'Técnicos de Campo',analytics:'Analytics Operacional','os-detail':'Detalhe da OS'}
+  document.getElementById('topbar-title').textContent=titles[view]||''
+  refreshCurrent()
+}
+
+// ══════════════════════════════════════════════════════════
+// DASHBOARD
+// ══════════════════════════════════════════════════════════
+function renderDashboard(){
+  const ativas=ordens.filter(o=>o.status==='aberta'||o.status==='em_andamento')
+  const atrasadas=ativas.filter(o=>slaInfo(o).expired)
+  const hoje=new Date();hoje.setHours(0,0,0,0)
+  const concluidasHoje=ordens.filter(o=>o.status==='concluida'&&o.concluida_em&&new Date(o.concluida_em)>=hoje)
+  const disp=tecnicos.filter(t=>t.status==='disponivel')
+
+  document.getElementById('kpi-ativos').textContent=tecnicos.filter(t=>t.status!=='offline').length
+  document.getElementById('kpi-disp-meta').textContent=`${disp.length} disponíve${disp.length===1?'l':'is'} agora`
+  document.getElementById('kpi-os-abertas').textContent=ativas.length
+  const semTec=ativas.filter(o=>!o.tecnico_id).length
+  const osMeta=document.getElementById('kpi-os-meta')
+  osMeta.textContent=semTec>0?`${semTec} sem técnico`:'Todas atribuídas'
+  osMeta.className='kpi-meta '+(semTec>0?'meta-warn':'meta-good')
+  document.getElementById('kpi-atrasadas').textContent=atrasadas.length
+  const slaMeta=document.getElementById('kpi-sla-meta')
+  slaMeta.textContent=atrasadas.length>0?'Acima do prazo':'Tudo no prazo'
+  slaMeta.className='kpi-meta '+(atrasadas.length>0?'meta-bad':'meta-good')
+  document.getElementById('kpi-concluidas').textContent=concluidasHoje.length
+
+  const ab=document.getElementById('alert-banner')
+  if(atrasadas.length>0){ab.style.display='flex';document.getElementById('alert-text').textContent=`${atrasadas.length} ordem${atrasadas.length>1?'s':''} com SLA vencido`}
+  else ab.style.display='none'
+  const sb=document.getElementById('sidebar-badge')
+  if(atrasadas.length>0){sb.textContent=atrasadas.length;sb.style.display='inline-block'}else sb.style.display='none'
+
+  let filtered=[...ativas]
+  if(dashChip==='critica') filtered=filtered.filter(o=>o.prioridade==='critica')
+  else if(dashChip==='em_andamento') filtered=filtered.filter(o=>o.status==='em_andamento')
+  filtered.sort((a,b)=>{
+    const sa=slaInfo(a),sb2=slaInfo(b)
+    if(sa.expired&&!sb2.expired)return -1;if(!sa.expired&&sb2.expired)return 1
+    return sa.hrs-sb2.hrs
+  })
+
+  const tbody=document.getElementById('dash-tbody')
+  if(!filtered.length){tbody.innerHTML='<tr><td colspan="6" style="text-align:center;padding:32px;color:var(--text3)">Nenhuma OS ativa</td></tr>';return}
+  tbody.innerHTML=filtered.map(os=>{
+    const t=os.tecnico
+    const s=slaInfo(os)
+    return`<tr onclick="openDetail('${os.id}')" style="cursor:pointer">
+      <td><span class="os-num">${os.numero_os}</span></td>
+      <td style="max-width:160px"><span style="overflow:hidden;text-overflow:ellipsis;white-space:nowrap;display:block">${s.expired?'<span class="atrasada-badge"></span>':''}${os.titulo}</span></td>
+      <td>${t?`<div style="display:flex;align-items:center;gap:7px">${avatar(t.nome)}<span style="font-size:12px">${t.nome.split(' ')[0]}</span></div>`:'<span style="color:var(--text3);font-size:11px">Não atribuído</span>'}</td>
+      <td>${prioBadge(os.prioridade)}</td>
+      <td>${slaHtml(os)}</td>
+      <td>${statusBadge(os.status)}</td>
+    </tr>`
+  }).join('')
+
+  document.getElementById('team-list').innerHTML=tecnicos.map(t=>{
+    const cnt=osPorTec(t.id)
+    const dotCls=t.status==='disponivel'?'dot-green':t.status==='em_atendimento'?'dot-blue':'dot-orange'
+    const pips=Array(4).fill(0).map((_,i)=>`<div class="load-pip${i<cnt?' on':''}"></div>`).join('')
+    return`<div class="team-item">${avatar(t.nome)}<div class="team-info"><div class="team-name">${t.nome.split(' ')[0]} ${t.nome.split(' ').at(-1)}</div><div class="team-sub">${t.especialidade}</div><div class="load-bar">${pips}</div></div><div style="text-align:right"><div class="dot-badge"><span class="dot ${dotCls}"></span><span style="font-size:10px">${STATUS_TEC[t.status]}</span></div></div></div>`
+  }).join('')
+}
+
+function setDashChip(el,val){
+  dashChip=val
+  document.querySelectorAll('#view-dashboard .chip').forEach(c=>c.classList.remove('active'))
+  el.classList.add('active');renderDashboard()
+}
+
+// ══════════════════════════════════════════════════════════
+// ORDENS
+// ══════════════════════════════════════════════════════════
+function renderOrdens(){
+  const regiao=document.getElementById('regiao-filter').value
+  let filtered=[...ordens].filter(o=>{
+    const ms=ordensFilter==='all'||o.status===ordensFilter
+    const mr=!regiao||o.regiao===regiao
+    const mq=!searchQuery||[o.titulo,o.numero_os,o.cliente].some(f=>f&&f.toLowerCase().includes(searchQuery))
+    return ms&&mr&&mq
+  }).sort((a,b)=>{
+    if(a.status!=='concluida'&&a.status!=='cancelada'&&b.status!=='concluida'&&b.status!=='cancelada'){
+      const sa=slaInfo(a),sb=slaInfo(b)
+      if(sa.expired&&!sb.expired)return -1;if(!sa.expired&&sb.expired)return 1
+      return sa.hrs-sb.hrs
+    }
+    return new Date(b.created_at)-new Date(a.created_at)
+  })
+
+  document.getElementById('ordens-count').textContent=`${filtered.length} de ${ordens.length} ordens`
+  const tbody=document.getElementById('ordens-tbody')
+  if(!filtered.length){tbody.innerHTML='<tr><td colspan="9"><div class="empty"><div class="empty-icon">📋</div><div class="empty-title">Nenhuma OS encontrada</div></div></td></tr>';return}
+  tbody.innerHTML=filtered.map(os=>{
+    const t=os.tecnico
+    const s=slaInfo(os)
+    const nextLbl=NEXT_LABEL[os.status]||''
+    return`<tr>
+      <td><span class="os-num" style="cursor:pointer;text-decoration:underline" onclick="openDetail('${os.id}')">${os.numero_os}</span></td>
+      <td style="max-width:180px"><span style="cursor:pointer" onclick="openDetail('${os.id}')">${s.expired&&os.status!=='concluida'&&os.status!=='cancelada'?'<span class="atrasada-badge"></span>':''}<span style="overflow:hidden;text-overflow:ellipsis;white-space:nowrap;display:inline-block;max-width:170px;vertical-align:bottom">${os.titulo}</span><div style="font-size:10px;color:var(--text3)">${os.regiao}</div></span></td>
+      <td><span style="font-size:11px;color:var(--text3)">${TIPO_LABEL[os.tipo]||os.tipo}</span></td>
+      <td style="font-size:11px;color:var(--text2);max-width:120px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${os.cliente}</td>
+      <td>${t?`<div style="display:flex;align-items:center;gap:7px">${avatar(t.nome)}<span style="font-size:11px">${t.nome.split(' ')[0]}</span></div>`:'<span style="color:var(--text3);font-size:11px">—</span>'}</td>
+      <td>${prioBadge(os.prioridade)}</td>
+      <td>${slaHtml(os)}</td>
+      <td>${statusBadge(os.status)}</td>
+      <td>${nextLbl?`<button class="btn btn-ghost action-btn" onclick="advanceOS('${os.id}')">${nextLbl}</button>`:''}</td>
+    </tr>`
+  }).join('')
+}
+
+function setOrdensFilter(el,val){
+  ordensFilter=val
+  document.querySelectorAll('#ordens-chips .chip').forEach(c=>c.classList.remove('active'))
+  el.classList.add('active');renderOrdens()
+}
+
+async function advanceOS(id){
+  const os=ordens.find(o=>o.id===id);if(!os)return
+  const next=NEXT_STATUS[os.status];if(!next)return
+  const upd={status:next}
+  if(next==='em_andamento') upd.iniciada_em=new Date().toISOString()
+  if(next==='concluida') upd.concluida_em=new Date().toISOString()
+  const {error}=await db.from('ordens_servico').update(upd).eq('id',id)
+  if(error){showToast('Erro ao atualizar OS',true);return}
+  showToast(`OS ${next==='concluida'?'concluída':'iniciada'} com sucesso`)
+  await loadData();refreshCurrent()
+}
+
+// ══════════════════════════════════════════════════════════
+// TÉCNICOS
+// ══════════════════════════════════════════════════════════
+function renderTecnicos(){
+  let filtered=tecnicos.filter(t=>{
+    const ms=tecFilter==='all'||t.status===tecFilter
+    const mq=!searchQuery||t.nome.toLowerCase().includes(searchQuery)||t.especialidade.toLowerCase().includes(searchQuery)||t.regiao.toLowerCase().includes(searchQuery)
+    return ms&&mq
+  })
+  const disp=tecnicos.filter(t=>t.status==='disponivel').length
+  document.getElementById('tec-sub').textContent=`${disp} disponíve${disp===1?'l':'is'} de ${tecnicos.length} ativos`
+  const container=document.getElementById('tec-cards')
+  if(!filtered.length){container.innerHTML='<div class="empty" style="grid-column:1/-1"><div class="empty-icon">◎</div><div class="empty-title">Nenhum técnico encontrado</div></div>';return}
+  container.innerHTML=filtered.map(t=>{
+    const cnt=osPorTec(t.id)
+    const dotCls=t.status==='disponivel'?'dot-green':t.status==='em_atendimento'?'dot-blue':'dot-orange'
+    const cntColor=cnt>2?'var(--red)':cnt>0?'var(--blue)':'var(--green)'
+    return`<div class="tech-card">
+      <div style="display:flex;align-items:center;gap:10px;margin-bottom:12px">${avatar(t.nome,true)}<div style="flex:1;min-width:0"><div style="font-size:13px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${t.nome}</div><div style="font-size:11px;color:var(--text3)">${t.especialidade} · ${SEN_LABEL[t.senioridade]||t.senioridade}</div></div><div class="dot ${dotCls}" style="margin-top:2px"></div></div>
+      <div style="font-size:11px">
+        <div style="display:flex;justify-content:space-between;padding:4px 0;border-bottom:1px solid var(--border)"><span style="color:var(--text3)">Região</span><span style="font-weight:500">${t.regiao}</span></div>
+        <div style="display:flex;justify-content:space-between;padding:4px 0;border-bottom:1px solid var(--border)"><span style="color:var(--text3)">OS ativas</span><span style="font-weight:500;color:${cntColor}">${cnt}</span></div>
+        ${t.telefone?`<div style="display:flex;justify-content:space-between;padding:4px 0;border-bottom:1px solid var(--border)"><span style="color:var(--text3)">Telefone</span><span style="font-weight:500">${t.telefone}</span></div>`:''}
+      </div>
+      <div style="margin-top:12px;padding-top:10px;border-top:1px solid var(--border);display:flex;justify-content:space-between;align-items:center">
+        <div class="dot-badge"><span class="dot ${dotCls}"></span>${STATUS_TEC[t.status]}</div>
+        <button class="btn btn-ghost" style="padding:4px 10px;font-size:11px" onclick="openEditTec('${t.id}')">Editar</button>
+      </div>
+    </div>`
+  }).join('')
+}
+
+function setTecFilter(el,val){
+  tecFilter=val
+  document.querySelectorAll('#view-tecnicos .chip').forEach(c=>c.classList.remove('active'))
+  el.classList.add('active');renderTecnicos()
+}
+
+// ══════════════════════════════════════════════════════════
+// ANALYTICS
+// ══════════════════════════════════════════════════════════
+function renderAnalytics(){
+  const ativas=ordens.filter(o=>o.status==='aberta'||o.status==='em_andamento')
+  const concluidas=ordens.filter(o=>o.status==='concluida')
+  const atrasadas=ativas.filter(o=>slaInfo(o).expired)
+  const slaOk=concluidas.filter(o=>o.concluida_em&&o.prazo_sla&&new Date(o.concluida_em)<=new Date(o.prazo_sla)).length
+  const slaPct=concluidas.length>0?Math.round((slaOk/concluidas.length)*100):100
+  const tempos=concluidas.filter(o=>o.iniciada_em&&o.concluida_em).map(o=>(new Date(o.concluida_em)-new Date(o.iniciada_em))/3600000)
+  const tmr=tempos.length>0?(tempos.reduce((a,b)=>a+b,0)/tempos.length).toFixed(1)+'h':'—'
+  const ativos=tecnicos.filter(t=>t.status!=='offline')
+  const emAtend=tecnicos.filter(t=>t.status==='em_atendimento')
+  const util=ativos.length>0?Math.round((emAtend.length/ativos.length)*100):0
+
+  document.getElementById('an-sla').textContent=slaPct+'%'
+  document.getElementById('an-sla-sub').textContent=`${slaOk} de ${concluidas.length} no prazo`
+  document.getElementById('an-tmr').textContent=tmr
+  document.getElementById('an-atrasadas').textContent=atrasadas.length
+  document.getElementById('an-util').textContent=util+'%'
+
+  const TIPO_COLORS={corretiva:'var(--red)',preventiva:'var(--blue)',instalacao:'var(--green)',vistoria:'var(--orange)'}
+  const byTipo={};ordens.forEach(o=>{byTipo[o.tipo]=(byTipo[o.tipo]||0)+1})
+  const maxTipo=Math.max(...Object.values(byTipo),1)
+  document.getElementById('chart-tipo').innerHTML=Object.entries(byTipo).map(([tipo,cnt])=>`<div class="hbar-row"><span class="hbar-label">${TIPO_LABEL[tipo]||tipo}</span><div class="hbar-track"><div class="hbar-fill" style="width:${Math.round((cnt/maxTipo)*100)}%;background:${TIPO_COLORS[tipo]||'var(--accent)'}"></div></div><span class="hbar-val">${cnt}</span></div>`).join('')
+
+  const CARGA_COLORS=['#3b82f6','#8b5cf6','#10b981','#f97316','#ec4899','#14b8a6']
+  const tecAtivos=tecnicos.filter(t=>t.status!=='folga'&&t.status!=='offline')
+  const maxCarga=Math.max(...tecAtivos.map(t=>osPorTec(t.id)),1)
+  document.getElementById('chart-carga').innerHTML=tecAtivos.map((t,i)=>{
+    const cnt=osPorTec(t.id);const c=cnt>2?'var(--red)':cnt>1?'var(--orange)':CARGA_COLORS[i%CARGA_COLORS.length]
+    return`<div class="hbar-row"><span class="hbar-label">${t.nome.split(' ')[0]} ${t.nome.split(' ').at(-1)}</span><div class="hbar-track"><div class="hbar-fill" style="width:${Math.round((cnt/maxCarga)*100)}%;background:${c}"></div></div><span class="hbar-val">${cnt}</span></div>`
+  }).join('')
+
+  const byReg={};ativas.forEach(o=>{byReg[o.regiao]=(byReg[o.regiao]||0)+1})
+  const maxReg=Math.max(...Object.values(byReg),1)
+  const REG_C=['#3b82f6','#8b5cf6','#f97316','#10b981','#6b7280']
+  document.getElementById('chart-regiao').innerHTML=Object.entries(byReg).sort((a,b)=>b[1]-a[1]).map(([r,cnt],i)=>`<div class="hbar-row"><span class="hbar-label">${r}</span><div class="hbar-track"><div class="hbar-fill" style="width:${Math.round((cnt/maxReg)*100)}%;background:${REG_C[i%REG_C.length]}"></div></div><span class="hbar-val">${cnt}</span></div>`).join('')
+
+  document.getElementById('chart-sla-stats').innerHTML=`
+    <div class="stat-row"><span class="stat-label">SLA cumprido no mês</span><span class="stat-val" style="color:${slaPct>=90?'var(--green)':'var(--red)'}">${slaPct}%</span></div>
+    <div class="stat-row"><span class="stat-label">OS concluídas</span><span class="stat-val">${concluidas.length}</span></div>
+    <div class="stat-row"><span class="stat-label">Em andamento</span><span class="stat-val">${ativas.filter(o=>o.status==='em_andamento').length}</span></div>
+    <div class="stat-row"><span class="stat-label">OS sem técnico</span><span class="stat-val" style="color:${ativas.filter(o=>!o.tecnico_id).length>0?'var(--yellow)':'var(--green)'}">${ativas.filter(o=>!o.tecnico_id).length}</span></div>
+    <div class="stat-row"><span class="stat-label">Técnicos disponíveis</span><span class="stat-val" style="color:var(--green)">${tecnicos.filter(t=>t.status==='disponivel').length}</span></div>
+    <div class="stat-row"><span class="stat-label">Técnicos em campo</span><span class="stat-val" style="color:var(--blue)">${emAtend.length}</span></div>`
+}
+
+// ══════════════════════════════════════════════════════════
+// DETALHE OS
+// ══════════════════════════════════════════════════════════
+async function openDetail(id){
+  const os=ordens.find(o=>o.id===id);if(!os)return
+  const {data:hist}=await db.from('historico_status').select('*').eq('os_id',id).order('alterado_em',{ascending:false})
+  const t=os.tecnico
+  const s=os.status==='concluida'||os.status==='cancelada'?null:slaInfo(os)
+  const slaPanelCls=!s?'ok':s.expired?'exp':s.cls==='sla-crit'?'crit':s.cls==='sla-warn'?'warn':'ok'
+  const nextLbl=NEXT_LABEL[os.status]
+  const dotC={aberta:'var(--yellow)',em_andamento:'var(--blue)',concluida:'var(--green)',cancelada:'var(--text3)'}
+
+  document.getElementById('os-detail-content').innerHTML=`
+    <div style="display:flex;align-items:flex-start;gap:16px;margin-bottom:20px;flex-wrap:wrap">
+      <div style="flex:1;min-width:0">
+        <div style="display:flex;align-items:center;gap:8px;margin-bottom:6px;flex-wrap:wrap">
+          <span class="os-num">${os.numero_os}</span>${statusBadge(os.status)} ${prioBadge(os.prioridade)}
+          <span style="font-size:11px;color:var(--text3)">${TIPO_LABEL[os.tipo]||os.tipo}</span>
+        </div>
+        <h2 style="font-size:18px;font-weight:600;line-height:1.3;margin-bottom:4px">${os.titulo}</h2>
+        <p style="font-size:12px;color:var(--text3)">${os.cliente} · ${os.regiao}</p>
+      </div>
+      ${nextLbl?`<button class="btn btn-primary" onclick="advanceDetailOS('${os.id}')">${nextLbl} OS</button>`:''}
+    </div>
+    <div class="detail-grid">
+      <div style="display:flex;flex-direction:column;gap:14px">
+        <div class="detail-panel">
+          <div class="detail-label">Detalhes</div>
+          <div class="detail-row"><span class="detail-key">Tipo</span><span class="detail-val">${TIPO_LABEL[os.tipo]||os.tipo}</span></div>
+          <div class="detail-row"><span class="detail-key">Cliente</span><span class="detail-val">${os.cliente}</span></div>
+          <div class="detail-row"><span class="detail-key">Região</span><span class="detail-val">${os.regiao}</span></div>
+          <div class="detail-row"><span class="detail-key">SLA</span><span class="detail-val">${os.sla_horas}h</span></div>
+          <div class="detail-row"><span class="detail-key">Prazo</span><span class="detail-val">${fmtDate(os.prazo_sla)}</span></div>
+          <div class="detail-row"><span class="detail-key">Aberta em</span><span class="detail-val">${fmtDate(os.created_at)}</span></div>
+          ${os.iniciada_em?`<div class="detail-row"><span class="detail-key">Iniciada em</span><span class="detail-val">${fmtDate(os.iniciada_em)}</span></div>`:''}
+          ${os.concluida_em?`<div class="detail-row"><span class="detail-key">Concluída em</span><span class="detail-val">${fmtDate(os.concluida_em)}</span></div>`:''}
+        </div>
+        ${os.descricao?`<div class="detail-panel"><div class="detail-label">Descrição</div><p style="font-size:12px;color:var(--text2);line-height:1.6">${os.descricao}</p></div>`:''}
+        <div class="detail-panel">
+          <div class="detail-label">Histórico</div>
+          ${hist&&hist.length?hist.map(h=>`<div class="timeline-item"><div class="timeline-dot" style="background:${dotC[h.status_novo]||'var(--text3)'}"></div><div><div class="timeline-text">${h.status_anterior?`${STATUS_LABEL[h.status_anterior]||h.status_anterior} → ${STATUS_LABEL[h.status_novo]||h.status_novo}`:`Criada como ${STATUS_LABEL[h.status_novo]}`}</div><div class="timeline-time">${fmtRel(h.alterado_em)}</div></div></div>`).join(''):'<p style="font-size:12px;color:var(--text3)">Nenhuma movimentação ainda.</p>'}
+        </div>
+      </div>
+      <div style="display:flex;flex-direction:column;gap:14px">
+        ${s?`<div class="sla-panel ${slaPanelCls}"><div class="detail-label">SLA</div><div class="sla-wrap ${s.cls}"><div class="sla-label" style="font-size:13px">${s.label}</div><div class="sla-track" style="height:6px;margin-top:6px"><div class="sla-fill" style="width:${s.pct}%"></div></div></div><p style="font-size:11px;color:var(--text3);margin-top:8px">Prazo: ${fmtDate(os.prazo_sla)}</p></div>`:''}
+        <div class="detail-panel">
+          <div class="detail-label">Técnico responsável</div>
+          ${t?`<div style="display:flex;align-items:center;gap:12px">${avatar(t.nome,true)}<div><div style="font-size:13px;font-weight:600">${t.nome}</div><div style="font-size:11px;color:var(--text3)">${t.especialidade} · ${SEN_LABEL[t.senioridade]||t.senioridade}</div>${t.telefone?`<div style="font-size:11px;color:var(--text3);margin-top:4px">${t.telefone}</div>`:''}</div></div>`:'<p style="font-size:12px;color:var(--text3);font-style:italic">Não atribuído</p>'}
+        </div>
+      </div>
+    </div>`
+
+  document.querySelectorAll('.nav-item').forEach(n=>n.classList.remove('active'))
+  document.querySelectorAll('.view').forEach(v=>v.classList.remove('active'))
+  document.getElementById('view-os-detail').classList.add('active')
+  currentView='os-detail'
+  document.getElementById('topbar-title').textContent='Detalhe da OS'
+}
+
+async function advanceDetailOS(id){await advanceOS(id);await loadData();openDetail(id)}
+
+// ══════════════════════════════════════════════════════════
+// MODAL OS
+// ══════════════════════════════════════════════════════════
+function openOSModal(){
+  const disp=tecnicos.filter(t=>t.status==='disponivel')
+  document.getElementById('f-tec-count').textContent=`(${disp.length} disponíve${disp.length===1?'l':'is'})`
+  document.getElementById('f-tecnico').innerHTML='<option value="">— Sem atribuição —</option>'+disp.map(t=>`<option value="${t.id}">${t.nome} (${t.especialidade})</option>`).join('')
+  document.getElementById('f-titulo').value=''
+  document.getElementById('f-cliente').value=''
+  document.getElementById('f-descricao').value=''
+  document.getElementById('os-form-error').style.display='none'
+  document.getElementById('modal-os').style.display='flex'
+  setTimeout(()=>document.getElementById('f-titulo').focus(),100)
+}
+
+async function submitOS(){
+  const titulo=document.getElementById('f-titulo').value.trim()
+  const cliente=document.getElementById('f-cliente').value.trim()
+  const err=document.getElementById('os-form-error')
+  if(!titulo||!cliente){err.textContent='Informe o título e o cliente';err.style.display='block';return}
+  err.style.display='none'
+  const btn=document.getElementById('os-submit-btn')
+  btn.disabled=true;btn.textContent='Criando...'
+
+  const slaH=parseInt(document.getElementById('f-sla').value)
+  const tecId=document.getElementById('f-tecnico').value||null
+  const payload={
+    titulo,tipo:document.getElementById('f-tipo').value,
+    prioridade:document.getElementById('f-prioridade').value,
+    cliente,regiao:document.getElementById('f-regiao').value,
+    tecnico_id:tecId,sla_horas:slaH,
+    descricao:document.getElementById('f-descricao').value.trim()||null,
+  }
+  const {error}=await db.from('ordens_servico').insert(payload)
+  btn.disabled=false;btn.textContent='Criar OS'
+  if(error){err.textContent='Erro ao criar OS. Tente novamente.';err.style.display='block';return}
+  showToast('OS criada com sucesso!')
+  closeModal('modal-os')
+  await loadData();refreshCurrent()
+}
+
+// ══════════════════════════════════════════════════════════
+// MODAL TÉCNICO
+// ══════════════════════════════════════════════════════════
+function openTecModal(){
+  editingTecId=null
+  document.getElementById('tec-modal-title').textContent='Novo Técnico'
+  document.getElementById('t-nome').value=''
+  document.getElementById('t-tel').value=''
+  document.getElementById('t-email').value=''
+  document.getElementById('tec-form-error').style.display='none'
+  document.getElementById('modal-tec').style.display='flex'
+  setTimeout(()=>document.getElementById('t-nome').focus(),100)
+}
+
+function openEditTec(id){
+  const t=getTec(id);if(!t)return
+  editingTecId=id
+  document.getElementById('tec-modal-title').textContent='Editar Técnico'
+  document.getElementById('t-nome').value=t.nome
+  document.getElementById('t-esp').value=t.especialidade
+  document.getElementById('t-sen').value=t.senioridade
+  document.getElementById('t-reg').value=t.regiao
+  document.getElementById('t-status').value=t.status==='em_atendimento'?'disponivel':t.status
+  document.getElementById('t-tel').value=t.telefone||''
+  document.getElementById('t-email').value=t.email||''
+  document.getElementById('tec-form-error').style.display='none'
+  document.getElementById('modal-tec').style.display='flex'
+}
+
+async function submitTec(){
+  const nome=document.getElementById('t-nome').value.trim()
+  const err=document.getElementById('tec-form-error')
+  if(!nome){err.textContent='Informe o nome';err.style.display='block';return}
+  err.style.display='none'
+  const btn=document.getElementById('tec-submit-btn')
+  btn.disabled=true;btn.textContent='Salvando...'
+
+  const payload={
+    nome,especialidade:document.getElementById('t-esp').value,
+    senioridade:document.getElementById('t-sen').value,
+    regiao:document.getElementById('t-reg').value,
+    status:document.getElementById('t-status').value,
+    telefone:document.getElementById('t-tel').value||null,
+    email:document.getElementById('t-email').value||null,
+  }
+  let error
+  if(editingTecId){
+    ({error}=await db.from('tecnicos').update(payload).eq('id',editingTecId))
+  } else {
+    ({error}=await db.from('tecnicos').insert(payload))
+  }
+  btn.disabled=false;btn.textContent='Salvar'
+  if(error){err.textContent='Erro ao salvar. Tente novamente.';err.style.display='block';return}
+  showToast(editingTecId?'Técnico atualizado!':'Técnico cadastrado!')
+  closeModal('modal-tec')
+  await loadData();refreshCurrent()
+}
+
+// ══════════════════════════════════════════════════════════
+// UTILS
+// ══════════════════════════════════════════════════════════
+function onSearch(){
+  searchQuery=document.getElementById('search-input').value.toLowerCase()
+  refreshCurrent()
+}
+
+function closeModal(id){document.getElementById(id).style.display='none'}
+document.querySelectorAll('.modal-overlay').forEach(m=>{
+  m.addEventListener('click',e=>{if(e.target===m)m.style.display='none'})
+})
+
+function updateClock(){
+  const d=new Date()
+  const el=document.getElementById('topbar-clock')
+  if(el) el.textContent=`Tempo real · ${d.toLocaleDateString('pt-BR',{weekday:'short',day:'2-digit',month:'short'})} · ${d.toLocaleTimeString('pt-BR',{hour:'2-digit',minute:'2-digit'})}`
+}
+setInterval(updateClock,10000)
+
+// ══════════════════════════════════════════════════════════
+// START
+// ══════════════════════════════════════════════════════════
+boot()
+</script>
+</body>
+</html>
