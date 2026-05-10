@@ -1341,9 +1341,9 @@ async function openDetail(id){
 // MODAL OS (criar)
 // ══════════════════════════════════════════
 function openOSModal(){
-  const disp=tecnicos.filter(t=>t.status==='disponivel')
-  document.getElementById('f-tec-count').textContent=`(${disp.length} disponíve${disp.length===1?'l':'is'})`
-  document.getElementById('f-tecnico').innerHTML='<option value="">— Sem atribuição —</option>'+disp.map(t=>`<option value="${t.id}">${t.nome} (${t.especialidade})</option>`).join('')
+  const disp=tecnicos.filter(t=>t.status!=='folga'&&t.status!=='offline')
+  document.getElementById('f-tec-count').textContent=`(${tecnicos.filter(t=>t.status==='disponivel').length} disponíve${tecnicos.filter(t=>t.status==='disponivel').length===1?'l':'is'})`
+  document.getElementById('f-tecnico').innerHTML='<option value="">— Sem atribuição —</option>'+disp.map(t=>`<option value="${t.id}">${t.nome} (${STATUS_TEC[t.status]})</option>`).join('')
   document.getElementById('f-titulo').value=''
   document.getElementById('f-cliente').value=''
   document.getElementById('f-descricao').value=''
